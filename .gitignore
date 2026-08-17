@@ -1,0 +1,29 @@
+# Environment and local configuration
+.env
+.venv/
+venv/
+
+# Python caches and build output
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Type-checker and linter caches
+.mypy_cache/
+.ruff_cache/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime corpus artifacts
+data/failed/*.jsonl
+data/checkpoints/*.json
+data/checkpoints/*.tmp
