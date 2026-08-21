@@ -377,8 +377,28 @@ and CPU-friendly batch size with `RERANKER_CANDIDATE_K`, `RERANKER_TOP_K`,
 `--court`, `--year`, and `--case-number` reuse the existing pre-retrieval filters;
 only eligible hybrid candidates reach the cross-encoder. Output preserves native
 BM25/dense provenance, RRF score and hybrid rank alongside the cross-encoder
-score and final reranked rank. This is a retrieval sanity layer only; formal
-retrieval evaluation has not started.
+score and final reranked rank. This remains a retrieval sanity layer; formal
+retrieval metrics are not implemented.
+
+## Gold retrieval queries
+
+The tracked gold set at `data/evaluation/gold_queries.jsonl` contains 40
+realistic legal-research queries grounded in verified paragraphs from the
+100-judgment corpus. Each paragraph is identified by durable `paragraph_uid`
+and graded `3` for a direct answer or central holding, `2` for strongly relevant
+support, or `1` for useful context. A review-friendly rendering with short,
+database-sourced evidence snippets is tracked at
+`data/evaluation/gold_queries_review.md`.
+
+Validate structure, uniqueness, relevance requirements, and exact PostgreSQL
+metadata/provenance with:
+
+```powershell
+python scripts/validate_gold_queries.py data/evaluation/gold_queries.jsonl
+```
+
+This command prints dataset-characterization statistics only. Recall, MRR,
+nDCG, and comparisons among retrieval methods are not implemented yet.
 
 ## Tests
 
@@ -414,6 +434,9 @@ matches, and unfiltered ranking regressions.
 Cross-encoder tests use fakes only and cover candidate batching, native-score
 ordering, provenance, deterministic ties, limits, filters, duplicate safety,
 empty retrieval, lazy loading, and model reuse without downloading model files.
+Gold-query validator tests use synthetic SQLite fixtures and cover duplicate
+identities, dangling UIDs, metadata mismatch, grading rules, duplicate labels,
+empty queries, statistics, and review rendering without running retrieval.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 
