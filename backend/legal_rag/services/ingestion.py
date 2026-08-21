@@ -12,6 +12,7 @@ from legal_rag.corpus import (
     CanonicalCase,
     deduplicate_paragraphs,
     extract_paragraphs,
+    generate_paragraph_uid,
 )
 from legal_rag.models import Case, Paragraph
 
@@ -73,6 +74,11 @@ def insert_case(session: Session, canonical_case: CanonicalCase) -> InsertionRes
             session.add_all(
                 Paragraph(
                     case_id=db_case.id,
+                    paragraph_uid=generate_paragraph_uid(
+                        canonical_case.document_hash,
+                        paragraph.paragraph_number,
+                        paragraph.text_hash,
+                    ),
                     paragraph_number=paragraph.paragraph_number,
                     page_number=paragraph.page_number,
                     text=paragraph.text,

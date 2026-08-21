@@ -13,18 +13,21 @@ LangChain, OpenSearch/BM25, OCR, and authentication.
 ```text
 backend/legal_rag/
   config.py                 Environment-backed runtime settings
-  database.py               SQLAlchemy engine, sessions, and schema creation
+  database.py               SQLAlchemy engine, sessions, and test schema helper
   models.py                 Case, Paragraph, and Statute models
+  schema_migrations.py      Safe empty/legacy/versioned database upgrades
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
   vector/                   Qdrant paragraph index adapter
 scripts/
+  migrate_database.py       Validated legacy-to-Alembic upgrade command
   ingest_corpus.py          Resumable JSONL ingestion
   index_vectors.py          PostgreSQL-to-Qdrant paragraph indexing
   test_search.py            Semantic-search command line tool
 tests/                       Corpus and database unit tests
 docker-compose.yml          PostgreSQL and Qdrant services
+migrations/                 Alembic environment and ordered schema revisions
 ```
 
 ## Prerequisites
@@ -74,7 +77,40 @@ credentials, export the matching `DATABASE_URL` before running a script. For
 example:
 
 ```powershell
-$env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@localhost:5432/legal_rag"
+$env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
+```
+
+## Database migrations
+
+For a new empty database, or a database already managed by Alembic, upgrade to
+the latest schema with:
+
+```powershell
+alembic upgrade head
+```
+
+Databases created by the earlier `Base.metadata.create_all()` implementation have
+the three corpus tables but no `alembic_version` table. Back up that database,
+then use the guarded upgrade command instead of manually stamping it:
+
+```powershell
+python scripts/migrate_database.py
+```
+
+The command first requires the exact legacy `cases`, `paragraphs`, and `statutes`
+tables, columns, types, nullability, primary keys, indexes,
+document/paragraph uniqueness, and cascading case foreign key. It then runs the
+baseline revision against that validated schema, adds and deterministically
+backfills `paragraph_uid`, enforces non-null/global uniqueness, and advances to
+head. Unknown or partially matching schemas are refused; never use
+`alembic stamp` to bypass that validation.
+
+Ingestion runs this same safe upgrade automatically before processing JSONL. If
+the old database already had a Qdrant index containing numeric point IDs, rebuild
+it once after migration so those stale points cannot coexist with UUID points:
+
+```powershell
+python scripts/index_vectors.py --recreate
 ```
 
 ## Canonical case format
@@ -145,12 +181,14 @@ The default embedding model is downloaded by Sentence Transformers on first use.
 Every Qdrant point stores exactly this payload:
 
 ```text
-case_id, title, court, year, paragraph_number, text
+case_id, paragraph_uid, title, court, year, paragraph_number, text
 ```
 
-Rerunning the indexer is idempotent because the PostgreSQL paragraph ID is the
-Qdrant point ID. Normal runs do not delete points, so after deleting database
-paragraphs or resetting PostgreSQL, rebuild an exact collection with
+Rerunning the indexer is idempotent because the deterministic UUIDv5
+`paragraph_uid` is the Qdrant point ID. The numeric PostgreSQL `Paragraph.id` is
+used only for efficient keyset pagination while indexing; it is not a durable
+citation or vector identity. Normal runs do not delete points, so after deleting
+database paragraphs or resetting PostgreSQL, rebuild an exact collection with
 `python scripts/index_vectors.py --recreate`. The destructive reset happens only
 when this flag is supplied. If `EMBEDDING_MODEL` is changed, set its matching
 `EMBEDDING_DIMENSION` and use a new `QDRANT_COLLECTION`; an incompatible existing
@@ -179,15 +217,19 @@ python -m pytest -q
 The tests cover normalization, document and paragraph deduplication, paragraph
 number/page extraction, relational insertion, duplicate skipping, statute
 storage, resumable failure-tolerant ingestion, checkpoint safeguards, and Qdrant
-collection/payload behavior. SQLite is used for isolated database unit tests;
-the production connection remains PostgreSQL.
+collection/payload behavior. Migration tests upgrade both empty and legacy
+temporary databases and verify that migration/runtime UUID generation agrees.
+SQLite is used for isolated database tests; the production connection remains
+PostgreSQL.
 
 ## Data model
 
 - `cases`: canonical judgment metadata, normalized raw text, unique document hash,
   and creation timestamp.
 - `paragraphs`: case foreign key, paragraph/page numbers, normalized text, and a
-  per-case unique text hash. Deleting a case cascades to its paragraphs.
+  per-case unique text hash. Its numeric `id` is a local database surrogate;
+  `paragraph_uid` is the globally unique, insertion-order-independent UUID used
+  for durable citations and Qdrant. Deleting a case cascades to its paragraphs.
 - `statutes`: act name, section, title, and statutory text.
 
 Stop the local services without deleting their named volumes:

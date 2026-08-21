@@ -7,10 +7,15 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
+from qdrant_client import QdrantClient
 from qdrant_client.models import Distance
+from sqlalchemy import select
 
+from legal_rag.corpus import generate_paragraph_uid, normalize_record
+from legal_rag.database import get_engine, get_session_factory, init_db
 from legal_rag.models import Case, Paragraph
-from legal_rag.vector import QdrantParagraphIndex
+from legal_rag.services.ingestion import insert_case
+from legal_rag.vector import ParagraphVectorRecord, QdrantParagraphIndex
 
 
 class FakeQdrantClient:
@@ -86,6 +91,7 @@ def test_explicit_recreate_replaces_the_collection() -> None:
 
 def test_paragraph_payload_has_exact_required_keys() -> None:
     script = _load_index_script()
+    paragraph_uid = generate_paragraph_uid("a" * 64, 7, "b" * 64)
     case = Case(
         id=11,
         title="Acme Ltd. v. Zenith Ltd.",
@@ -98,6 +104,7 @@ def test_paragraph_payload_has_exact_required_keys() -> None:
     )
     paragraph = Paragraph(
         id=19,
+        paragraph_uid=paragraph_uid,
         case_id=11,
         paragraph_number=7,
         page_number=2,
@@ -108,6 +115,7 @@ def test_paragraph_payload_has_exact_required_keys() -> None:
     payload = script.paragraph_payload(paragraph, case)
 
     assert payload == {
+        "paragraph_uid": paragraph_uid,
         "case_id": 11,
         "title": "Acme Ltd. v. Zenith Ltd.",
         "court": "Delhi High Court",
@@ -115,3 +123,116 @@ def test_paragraph_payload_has_exact_required_keys() -> None:
         "paragraph_number": 7,
         "text": "The claim is decreed.",
     }
+
+
+def test_qdrant_point_struct_persists_uuid_id_and_payload() -> None:
+    paragraph_uid = generate_paragraph_uid("a" * 64, 7, "b" * 64)
+    client = QdrantClient(":memory:")
+    paragraph_index = QdrantParagraphIndex(
+        url="http://unused.test",
+        collection_name="paragraphs",
+        client=client,
+    )
+    paragraph_index.ensure_collection(3)
+
+    assert paragraph_index.upsert(
+        [
+            ParagraphVectorRecord(
+                point_id=paragraph_uid,
+                vector=[1.0, 0.0, 0.0],
+                payload={"paragraph_uid": paragraph_uid},
+            )
+        ]
+    ) == 1
+
+    stored = client.retrieve(
+        collection_name="paragraphs",
+        ids=[paragraph_uid],
+        with_payload=True,
+    )
+    assert len(stored) == 1
+    assert stored[0].id == paragraph_uid
+    assert stored[0].payload == {"paragraph_uid": paragraph_uid}
+
+
+def test_index_vectors_uses_paragraph_uid_for_qdrant_point_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = _load_index_script()
+    database_path = tmp_path / "vectors.sqlite3"
+    database_url = f"sqlite+pysqlite:///{database_path.as_posix()}"
+    engine = get_engine(database_url)
+    init_db(engine)
+    session_factory = get_session_factory(engine)
+    canonical = normalize_record(
+        {
+            "title": "Acme Ltd. v. Zenith Ltd.",
+            "court": "Delhi High Court",
+            "judgment_date": "2025-02-03",
+            "raw_text": "1. The claim is decreed.",
+        }
+    )
+
+    with session_factory.begin() as session:
+        insert_case(session, canonical)
+    with session_factory() as session:
+        stored_paragraph = session.scalars(select(Paragraph)).one()
+        numeric_id = stored_paragraph.id
+        paragraph_uid = stored_paragraph.paragraph_uid
+
+    captured_records = []
+
+    class FakeEmbeddingProvider:
+        dimension = 3
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def embed_documents(self, texts, *, batch_size):
+            assert texts == ["The claim is decreed."]
+            assert batch_size == 10
+            return [[1.0, 0.0, 0.0]]
+
+    class CapturingParagraphIndex:
+        def __init__(self, **_kwargs) -> None:
+            pass
+
+        def ensure_collection(self, vector_size, *, recreate=False) -> None:
+            assert vector_size == 3
+            assert recreate is False
+
+        def upsert(self, records) -> int:
+            captured_records.extend(records)
+            return len(records)
+
+    settings = SimpleNamespace(
+        database_url=database_url,
+        embedding_model="test-model",
+        embedding_dimension=3,
+        qdrant_url="http://unused.test",
+        qdrant_api_key=None,
+        qdrant_collection="paragraphs",
+    )
+    monkeypatch.setattr(script, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        script,
+        "SentenceTransformerEmbeddingProvider",
+        FakeEmbeddingProvider,
+    )
+    monkeypatch.setattr(script, "QdrantParagraphIndex", CapturingParagraphIndex)
+
+    try:
+        assert script.index_vectors(
+            batch_size=10,
+            collection=None,
+            model=None,
+        ) == 1
+    finally:
+        engine.dispose()
+
+    assert len(captured_records) == 1
+    record = captured_records[0]
+    assert record.point_id == paragraph_uid
+    assert record.point_id != numeric_id
+    assert record.payload["paragraph_uid"] == paragraph_uid

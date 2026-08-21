@@ -23,8 +23,9 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from legal_rag.config import get_settings  # noqa: E402
 from legal_rag.corpus import normalize_record  # noqa: E402
-from legal_rag.database import get_engine, get_session_factory, init_db  # noqa: E402
+from legal_rag.database import get_engine, get_session_factory  # noqa: E402
 from legal_rag.models import Case  # noqa: E402
+from legal_rag.schema_migrations import upgrade_database  # noqa: E402
 from legal_rag.services.ingestion import insert_case  # noqa: E402
 
 
@@ -178,8 +179,8 @@ def ingest_file(
     checkpoint = CheckpointStore(checkpoint_dir, input_path, database_url)
     progress = checkpoint.load(restart=restart)
 
+    upgrade_database(database_url)
     engine = get_engine(database_url)
-    init_db(engine)
     session_factory = get_session_factory(engine)
     failure_path = _failure_path(failed_dir, input_path)
 

@@ -63,6 +63,9 @@ class Paragraph(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    paragraph_uid: Mapped[str] = mapped_column(
+        String(36), nullable=False, unique=True, index=True
+    )
     case_id: Mapped[int] = mapped_column(
         ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True
     )

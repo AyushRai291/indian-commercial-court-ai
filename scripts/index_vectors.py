@@ -72,6 +72,7 @@ def paragraph_payload(paragraph: Paragraph, case: Case) -> dict[str, Any]:
     judgment_date = case.judgment_date
     return {
         "case_id": case.id,
+        "paragraph_uid": paragraph.paragraph_uid,
         "title": case.title,
         "court": case.court,
         "year": judgment_date.year if judgment_date is not None else None,
@@ -126,9 +127,9 @@ def index_vectors(
         embeddings = provider.embed_documents(texts, batch_size=batch_size)
         records = [
             ParagraphVectorRecord(
-                # PostgreSQL paragraph IDs are stable, globally unique, and
-                # therefore make reruns overwrite rather than duplicate points.
-                point_id=paragraph.id,
+                # The UUIDv5 remains stable across resets and insertion orders.
+                # Numeric IDs are used only for PostgreSQL keyset pagination.
+                point_id=paragraph.paragraph_uid,
                 vector=embedding,
                 payload=paragraph_payload(paragraph, case),
             )

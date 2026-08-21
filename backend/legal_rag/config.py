@@ -32,7 +32,7 @@ class Settings:
     """Runtime settings used by database and vector scripts."""
 
     database_url: str = (
-        "postgresql+psycopg://legal_rag:legal_rag_dev_password@localhost:5432/legal_rag"
+        "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
     )
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
@@ -48,7 +48,7 @@ class Settings:
         return cls(
             database_url=os.getenv(
                 "DATABASE_URL",
-                "postgresql+psycopg://legal_rag:legal_rag_dev_password@localhost:5432/legal_rag",
+                "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag",
             ),
             qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
             qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,

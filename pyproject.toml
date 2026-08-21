@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Corpus foundation for an Indian Commercial Court legal RAG system"
 requires-python = ">=3.10"
 dependencies = [
+    "alembic>=1.13,<2.0",
     "psycopg[binary]>=3.1,<4.0",
     "qdrant-client>=1.14,<1.16",
     "sentence-transformers>=3.0,<6.0",
