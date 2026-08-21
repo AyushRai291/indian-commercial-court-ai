@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from legal_rag.models import Case, Paragraph
+from legal_rag.retrieval.filters import RetrievalFilters
 from legal_rag.retrieval.results import ParagraphSearchResult
 
 
@@ -150,7 +151,13 @@ class BM25ParagraphRetriever:
     def indexed_paragraphs(self) -> int:
         return len(self.documents)
 
-    def search(self, query: str, *, top_k: int) -> list[ParagraphSearchResult]:
+    def search(
+        self,
+        query: str,
+        *,
+        top_k: int,
+        filters: RetrievalFilters | None = None,
+    ) -> list[ParagraphSearchResult]:
         """Return positive-scoring paragraphs ordered by BM25 then durable UID."""
 
         if not isinstance(query, str):
@@ -166,12 +173,34 @@ class BM25ParagraphRetriever:
         if not self.documents or self.average_document_length <= 0:
             return []
 
+        active_filters = filters if filters is not None and filters.is_active else None
+        eligible_indexes = (
+            {
+                index
+                for index, document in enumerate(self.documents)
+                if active_filters.matches(
+                    court=document.court,
+                    judgment_date=document.judgment_date,
+                    case_number=document.case_number,
+                )
+            }
+            if active_filters is not None
+            else None
+        )
+        if eligible_indexes is not None and not eligible_indexes:
+            return []
+
         scores: dict[int, float] = defaultdict(float)
         for token, query_frequency in query_frequencies.items():
             idf = self._idf.get(token)
             if idf is None:
                 continue
             for document_index, term_frequency in self._postings[token].items():
+                if (
+                    eligible_indexes is not None
+                    and document_index not in eligible_indexes
+                ):
+                    continue
                 document_length = self._document_lengths[document_index]
                 length_normalization = 1.0 - self.b + self.b * (
                     document_length / self.average_document_length

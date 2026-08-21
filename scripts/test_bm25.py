@@ -16,7 +16,10 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from legal_rag.config import get_settings  # noqa: E402
 from legal_rag.database import get_engine, get_session_factory  # noqa: E402
-from legal_rag.retrieval import BM25ParagraphRetriever  # noqa: E402
+from legal_rag.retrieval import (  # noqa: E402
+    BM25ParagraphRetriever,
+    build_retrieval_filters,
+)
 from legal_rag.schema_migrations import upgrade_database  # noqa: E402
 
 
@@ -36,6 +39,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="SQLAlchemy database URL (defaults to DATABASE_URL)",
     )
+    parser.add_argument("--court", default=None, help="Exact court metadata filter")
+    parser.add_argument(
+        "--year",
+        type=int,
+        default=None,
+        help="Exact judgment calendar year filter",
+    )
+    parser.add_argument(
+        "--case-number",
+        default=None,
+        help="Exact canonical case-number filter",
+    )
     return parser
 
 
@@ -49,6 +64,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("query must not be empty")
     if args.top_k <= 0:
         parser.error("--top-k must be positive")
+    try:
+        filters = build_retrieval_filters(
+            court=args.court,
+            year=args.year,
+            case_number=args.case_number,
+        )
+    except (TypeError, ValueError) as error:
+        parser.error(str(error))
     settings = get_settings()
     database_url = args.database_url or settings.database_url
     upgrade_database(database_url)
@@ -60,8 +83,13 @@ def main(argv: list[str] | None = None) -> int:
     build_seconds = perf_counter() - build_started
 
     query_started = perf_counter()
-    results = retriever.search(query, top_k=args.top_k)
+    results = retriever.search(query, top_k=args.top_k, filters=filters)
     query_seconds = perf_counter() - query_started
+    if filters is not None:
+        print(
+            f"Filters: court={filters.court or '-'} year={filters.year or '-'} "
+            f"case_number={filters.case_number or '-'}"
+        )
     print(
         f"Indexed {retriever.indexed_paragraphs} paragraphs in "
         f"{build_seconds * 1000:.1f} ms; query {query_seconds * 1000:.2f} ms"

@@ -24,6 +24,7 @@ from legal_rag.retrieval import (  # noqa: E402
     BM25ParagraphRetriever,
     DenseParagraphRetriever,
     HybridParagraphRetriever,
+    build_retrieval_filters,
 )
 from legal_rag.schema_migrations import upgrade_database  # noqa: E402
 from legal_rag.vector import QdrantParagraphIndex  # noqa: E402
@@ -73,6 +74,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Sentence Transformers model (defaults to EMBEDDING_MODEL)",
     )
+    parser.add_argument("--court", default=None, help="Exact court metadata filter")
+    parser.add_argument(
+        "--year",
+        type=int,
+        default=None,
+        help="Exact judgment calendar year filter",
+    )
+    parser.add_argument(
+        "--case-number",
+        default=None,
+        help="Exact canonical case-number filter",
+    )
     return parser
 
 
@@ -121,6 +134,14 @@ def main(argv: list[str] | None = None) -> int:
     ):
         if value <= 0:
             parser.error(f"{option} must be positive")
+    try:
+        filters = build_retrieval_filters(
+            court=args.court,
+            year=args.year,
+            case_number=args.case_number,
+        )
+    except (TypeError, ValueError) as error:
+        parser.error(str(error))
 
     settings = get_settings()
     database_url = args.database_url or settings.database_url
@@ -153,8 +174,14 @@ def main(argv: list[str] | None = None) -> int:
     results, diagnostics = hybrid_retriever.search_with_diagnostics(
         query,
         top_k=args.top_k,
+        filters=filters,
     )
 
+    if filters is not None:
+        print(
+            f"Filters: court={filters.court or '-'} year={filters.year or '-'} "
+            f"case_number={filters.case_number or '-'}"
+        )
     print(
         f"BM25 indexed {bm25_retriever.indexed_paragraphs} paragraphs in "
         f"{build_seconds * 1000:.1f} ms; candidates bm25="

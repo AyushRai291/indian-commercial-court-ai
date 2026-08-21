@@ -20,6 +20,11 @@ from legal_rag.config import get_settings  # noqa: E402
 from legal_rag.database import get_engine, get_session_factory  # noqa: E402
 from legal_rag.embeddings import SentenceTransformerEmbeddingProvider  # noqa: E402
 from legal_rag.models import Case, Paragraph  # noqa: E402
+from legal_rag.retrieval.filters import (  # noqa: E402
+    CASE_NUMBER_FILTER_FIELD,
+    COURT_FILTER_FIELD,
+    normalized_payload_value,
+)
 from legal_rag.vector import ParagraphVectorRecord, QdrantParagraphIndex  # noqa: E402
 
 
@@ -75,7 +80,9 @@ def paragraph_payload(paragraph: Paragraph, case: Case) -> dict[str, Any]:
         "paragraph_uid": paragraph.paragraph_uid,
         "title": case.title,
         "case_number": case.case_number,
+        CASE_NUMBER_FILTER_FIELD: normalized_payload_value(case.case_number),
         "court": case.court,
+        COURT_FILTER_FIELD: normalized_payload_value(case.court),
         "judgment_date": (
             judgment_date.isoformat() if judgment_date is not None else None
         ),

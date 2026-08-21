@@ -5,7 +5,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date, datetime
 
+from qdrant_client.models import FieldCondition, Filter, MatchValue
+
 from legal_rag.embeddings import EmbeddingProvider
+from legal_rag.retrieval.filters import (
+    CASE_NUMBER_FILTER_FIELD,
+    COURT_FILTER_FIELD,
+    JUDGMENT_YEAR_FILTER_FIELD,
+    RetrievalFilters,
+)
 from legal_rag.retrieval.results import ParagraphSearchResult
 from legal_rag.vector import QdrantParagraphIndex, SemanticSearchResult
 
@@ -86,11 +94,46 @@ def search_dense(
     query_vector: Sequence[float],
     *,
     top_k: int,
+    filters: RetrievalFilters | None = None,
 ) -> list[ParagraphSearchResult]:
     """Run cosine search and expose hits through the shared result contract."""
 
-    hits = paragraph_index.search(query_vector, limit=top_k)
+    hits = paragraph_index.search(
+        query_vector,
+        limit=top_k,
+        query_filter=build_qdrant_filter(filters),
+    )
     return semantic_hits_to_results(hits)
+
+
+def build_qdrant_filter(filters: RetrievalFilters | None) -> Filter | None:
+    """Translate shared metadata constraints to native Qdrant conditions."""
+
+    if filters is None or not filters.is_active:
+        return None
+    conditions: list[FieldCondition] = []
+    if filters.court is not None:
+        conditions.append(
+            FieldCondition(
+                key=COURT_FILTER_FIELD,
+                match=MatchValue(value=filters.court),
+            )
+        )
+    if filters.year is not None:
+        conditions.append(
+            FieldCondition(
+                key=JUDGMENT_YEAR_FILTER_FIELD,
+                match=MatchValue(value=filters.year),
+            )
+        )
+    if filters.case_number is not None:
+        conditions.append(
+            FieldCondition(
+                key=CASE_NUMBER_FILTER_FIELD,
+                match=MatchValue(value=filters.case_number),
+            )
+        )
+    return Filter(must=conditions)
 
 
 class DenseParagraphRetriever:
@@ -104,7 +147,13 @@ class DenseParagraphRetriever:
         self.paragraph_index = paragraph_index
         self.embedding_provider = embedding_provider
 
-    def search(self, query: str, *, top_k: int) -> list[ParagraphSearchResult]:
+    def search(
+        self,
+        query: str,
+        *,
+        top_k: int,
+        filters: RetrievalFilters | None = None,
+    ) -> list[ParagraphSearchResult]:
         if not isinstance(query, str):
             raise TypeError("query must be a string")
         if not query.strip():
@@ -115,4 +164,5 @@ class DenseParagraphRetriever:
             self.paragraph_index,
             self.embedding_provider.embed_query(query),
             top_k=top_k,
+            filters=filters,
         )

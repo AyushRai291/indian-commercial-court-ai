@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Protocol
 
+from legal_rag.retrieval.filters import RetrievalFilters
 from legal_rag.retrieval.results import HybridSearchResult, ParagraphSearchResult
 
 
@@ -17,7 +18,13 @@ DEFAULT_RRF_K = 60
 class RankedParagraphRetriever(Protocol):
     """Structural interface shared by paragraph retrievers used for fusion."""
 
-    def search(self, query: str, *, top_k: int) -> list[ParagraphSearchResult]: ...
+    def search(
+        self,
+        query: str,
+        *,
+        top_k: int,
+        filters: RetrievalFilters | None = None,
+    ) -> list[ParagraphSearchResult]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,6 +158,7 @@ class HybridParagraphRetriever:
         bm25_candidate_depth: int | None = None,
         dense_candidate_depth: int | None = None,
         rrf_k: int | None = None,
+        filters: RetrievalFilters | None = None,
     ) -> list[HybridSearchResult]:
         """Return the fused results without diagnostics."""
 
@@ -160,6 +168,7 @@ class HybridParagraphRetriever:
             bm25_candidate_depth=bm25_candidate_depth,
             dense_candidate_depth=dense_candidate_depth,
             rrf_k=rrf_k,
+            filters=filters,
         )
         return results
 
@@ -171,6 +180,7 @@ class HybridParagraphRetriever:
         bm25_candidate_depth: int | None = None,
         dense_candidate_depth: int | None = None,
         rrf_k: int | None = None,
+        filters: RetrievalFilters | None = None,
     ) -> tuple[list[HybridSearchResult], HybridSearchDiagnostics]:
         """Return fused results plus candidate counts and latency."""
 
@@ -195,8 +205,16 @@ class HybridParagraphRetriever:
         _validate_positive("rrf_k", fusion_k)
 
         total_started = perf_counter()
-        bm25_results = self.bm25_retriever.search(query, top_k=bm25_depth)
-        dense_results = self.dense_retriever.search(query, top_k=dense_depth)
+        bm25_results = self.bm25_retriever.search(
+            query,
+            top_k=bm25_depth,
+            filters=filters,
+        )
+        dense_results = self.dense_retriever.search(
+            query,
+            top_k=dense_depth,
+            filters=filters,
+        )
         fusion_started = perf_counter()
         results = reciprocal_rank_fusion(
             bm25_results,

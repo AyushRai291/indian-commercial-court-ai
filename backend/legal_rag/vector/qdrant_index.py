@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, Filter, PointStruct, VectorParams
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +150,7 @@ class QdrantParagraphIndex:
         query_vector: Sequence[float],
         *,
         limit: int,
+        query_filter: Filter | None = None,
     ) -> list[SemanticSearchResult]:
         """Return the closest paragraphs in descending similarity order."""
 
@@ -162,6 +163,7 @@ class QdrantParagraphIndex:
             response = self.client.query_points(
                 collection_name=self.collection_name,
                 query=[float(value) for value in query_vector],
+                query_filter=query_filter,
                 limit=limit,
                 with_payload=True,
             )
@@ -170,6 +172,7 @@ class QdrantParagraphIndex:
             hits = self.client.search(
                 collection_name=self.collection_name,
                 query_vector=[float(value) for value in query_vector],
+                query_filter=query_filter,
                 limit=limit,
                 with_payload=True,
             )

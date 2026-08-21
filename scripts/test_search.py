@@ -16,7 +16,11 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from legal_rag.config import get_settings  # noqa: E402
 from legal_rag.embeddings import SentenceTransformerEmbeddingProvider  # noqa: E402
-from legal_rag.retrieval import search_dense  # noqa: E402
+from legal_rag.retrieval import (  # noqa: E402
+    RetrievalFilters,
+    build_retrieval_filters,
+    search_dense,
+)
 from legal_rag.vector import QdrantParagraphIndex  # noqa: E402
 
 
@@ -45,6 +49,18 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Sentence Transformers model (defaults to EMBEDDING_MODEL)",
     )
+    parser.add_argument("--court", default=None, help="Exact court metadata filter")
+    parser.add_argument(
+        "--year",
+        type=int,
+        default=None,
+        help="Exact judgment calendar year filter",
+    )
+    parser.add_argument(
+        "--case-number",
+        default=None,
+        help="Exact canonical case-number filter",
+    )
     return parser.parse_args()
 
 
@@ -62,7 +78,14 @@ def _qdrant_api_key(settings: Any) -> str | None:
     return str(value)
 
 
-def search(query: str, *, top_k: int, collection: str | None, model: str | None) -> int:
+def search(
+    query: str,
+    *,
+    top_k: int,
+    collection: str | None,
+    model: str | None,
+    filters: RetrievalFilters | None = None,
+) -> int:
     if top_k <= 0:
         raise ValueError("top_k must be positive")
 
@@ -81,7 +104,14 @@ def search(query: str, *, top_k: int, collection: str | None, model: str | None)
         paragraph_index,
         provider.embed_query(query),
         top_k=top_k,
+        filters=filters,
     )
+
+    if filters is not None:
+        print(
+            f"Filters: court={filters.court or '-'} year={filters.year or '-'} "
+            f"case_number={filters.case_number or '-'}"
+        )
 
     if not results:
         print("No matching paragraphs found.")
@@ -112,11 +142,20 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = parse_args()
     query = " ".join(args.query).strip()
+    try:
+        filters = build_retrieval_filters(
+            court=args.court,
+            year=args.year,
+            case_number=args.case_number,
+        )
+    except (TypeError, ValueError) as error:
+        raise SystemExit(f"Invalid metadata filters: {error}") from error
     search(
         query,
         top_k=args.top_k,
         collection=args.collection,
         model=args.model,
+        filters=filters,
     )
     return 0
 

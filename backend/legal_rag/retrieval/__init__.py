@@ -7,8 +7,14 @@ from legal_rag.retrieval.bm25 import (
 )
 from legal_rag.retrieval.dense import (
     DenseParagraphRetriever,
+    build_qdrant_filter,
     search_dense,
     semantic_hits_to_results,
+)
+from legal_rag.retrieval.filters import (
+    RetrievalFilters,
+    build_retrieval_filters,
+    normalize_metadata_value,
 )
 from legal_rag.retrieval.hybrid import (
     DEFAULT_CANDIDATE_DEPTH,
@@ -31,6 +37,10 @@ __all__ = [
     "ParagraphDocument",
     "ParagraphSearchResult",
     "RankedParagraphRetriever",
+    "RetrievalFilters",
+    "build_qdrant_filter",
+    "build_retrieval_filters",
+    "normalize_metadata_value",
     "reciprocal_rank_fusion",
     "search_dense",
     "semantic_hits_to_results",

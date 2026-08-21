@@ -6,7 +6,7 @@ deduplicates and stores cases and paragraphs in PostgreSQL, and indexes paragrap
 embeddings in Qdrant.
 
 The current scope deliberately excludes a frontend, LLM answer generation,
-LangChain, OpenSearch, metadata filtering, reranking, OCR, and authentication.
+LangChain, OpenSearch, reranking, OCR, and authentication.
 
 ## Repository layout
 
@@ -286,8 +286,12 @@ Every Qdrant point stores exactly this payload:
 
 ```text
 case_id, paragraph_uid, title, case_number, court, judgment_date, source_url,
-year, paragraph_number, page_number, text
+year, court_filter, case_number_filter, paragraph_number, page_number, text
 ```
+
+Collections created before metadata-filter support lack the two normalized
+helper fields. Rebuild such a collection once with
+`python scripts/index_vectors.py --recreate` before running filtered searches.
 
 Rerunning the indexer is idempotent because the deterministic UUIDv5
 `paragraph_uid` is the Qdrant point ID. The numeric PostgreSQL `Paragraph.id` is
@@ -338,8 +342,24 @@ python scripts/test_hybrid.py "commercial wisdom of committee of creditors" --to
 Use `--bm25-depth`, `--dense-depth`, or `--rrf-k` to override those values for a
 run. RRF never mixes or normalizes raw BM25 and cosine scores; the hybrid output
 retains each native rank and score only as provenance alongside the final RRF
-score. Results are deduplicated by durable `paragraph_uid`. Metadata filtering
-and cross-encoder reranking are not implemented yet.
+score. Results are deduplicated by durable `paragraph_uid`.
+
+BM25, dense, and hybrid search accept the same optional exact metadata filters:
+
+```powershell
+python scripts/test_hybrid.py "commercial wisdom of committee of creditors" `
+  --court "Supreme Court of India" --year 2019 --top-k 10
+python scripts/test_bm25.py "arbitration" `
+  --case-number "Arbitration Application No. 32 of 2019" --top-k 5
+python scripts/test_search.py "insolvency admission" --year 2022 --top-k 5
+```
+
+`--court`, `--year`, and `--case-number` combine with AND semantics. Court and
+case-number matching uses Unicode NFKC normalization, case-folding, and collapsed
+whitespace while preserving canonical metadata for display. Filters constrain
+the eligible BM25 and native Qdrant candidate sets before RRF; they do not boost,
+normalize, or otherwise modify relevance scores. Cross-encoder reranking is not
+implemented yet.
 
 ## Tests
 
@@ -369,6 +389,9 @@ Hybrid tests use synthetic retriever outputs and cover exact RRF mathematics,
 cross-list boosting, one-list candidates, UID deduplication, deterministic ties,
 validation, candidate depths, and rank/native-score provenance without Docker or
 an embedding download.
+Metadata-filter tests cover deterministic normalization, AND semantics, full-set
+BM25 eligibility, native Qdrant filter forwarding, hybrid propagation, empty
+matches, and unfiltered ranking regressions.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

@@ -8,6 +8,7 @@ from legal_rag.retrieval import (
     HybridParagraphRetriever,
     HybridSearchResult,
     ParagraphSearchResult,
+    RetrievalFilters,
     reciprocal_rank_fusion,
 )
 
@@ -43,10 +44,16 @@ def _uid(suffix: int) -> str:
 class _FakeRetriever:
     def __init__(self, results: list[ParagraphSearchResult]) -> None:
         self.results = results
-        self.calls: list[tuple[str, int]] = []
+        self.calls: list[tuple[str, int, RetrievalFilters | None]] = []
 
-    def search(self, query: str, *, top_k: int) -> list[ParagraphSearchResult]:
-        self.calls.append((query, top_k))
+    def search(
+        self,
+        query: str,
+        *,
+        top_k: int,
+        filters: RetrievalFilters | None = None,
+    ) -> list[ParagraphSearchResult]:
+        self.calls.append((query, top_k, filters))
         return self.results[:top_k]
 
 
@@ -154,8 +161,8 @@ def test_hybrid_retriever_uses_configured_depths_and_large_top_k() -> None:
     results, diagnostics = retriever.search_with_diagnostics("arbitration", top_k=100)
 
     assert len(results) == 2
-    assert bm25.calls == [("arbitration", 50)]
-    assert dense.calls == [("arbitration", 60)]
+    assert bm25.calls == [("arbitration", 50, None)]
+    assert dense.calls == [("arbitration", 60, None)]
     assert diagnostics.bm25_candidates == 1
     assert diagnostics.dense_candidates == 1
     assert diagnostics.unique_candidates == 2
