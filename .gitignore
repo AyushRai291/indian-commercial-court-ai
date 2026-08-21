@@ -24,6 +24,9 @@ dist/
 Thumbs.db
 
 # Runtime corpus artifacts
+data/raw/
+data/processed/
 data/failed/*.jsonl
 data/checkpoints/*.json
 data/checkpoints/*.tmp
+data/manifests/*.tmp

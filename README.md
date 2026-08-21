@@ -16,11 +16,15 @@ backend/legal_rag/
   database.py               SQLAlchemy engine, sessions, and test schema helper
   models.py                 Case, Paragraph, and Statute models
   schema_migrations.py      Safe empty/legacy/versioned database upgrades
+  acquisition.py            Resumable official-PDF download and validation
+  extraction.py             Resumable PDF-to-canonical-JSONL conversion
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
   vector/                   Qdrant paragraph index adapter
 scripts/
+  download_judgments.py     Pilot judgment PDF acquisition and audit
+  extract_judgments.py      Text-native PDF extraction with page boundaries
   migrate_database.py       Validated legacy-to-Alembic upgrade command
   ingest_corpus.py          Resumable JSONL ingestion
   index_vectors.py          PostgreSQL-to-Qdrant paragraph indexing
@@ -28,6 +32,7 @@ scripts/
 tests/                       Corpus and database unit tests
 docker-compose.yml          PostgreSQL and Qdrant services
 migrations/                 Alembic environment and ordered schema revisions
+data/manifests/             Tracked pilot provenance manifest and audit
 ```
 
 ## Prerequisites
@@ -133,6 +138,54 @@ The normalizer also recognizes common aliases such as `case_title`, `case_name`,
 `content`. It searches common nested containers including `metadata`, `details`,
 `document`, `case`, and `data`.
 
+## Pilot judgment acquisition
+
+The first pilot corpus is defined by the tracked manifest at
+`data/manifests/judgments_pilot.jsonl`. Its records identify 20 commercial-law
+judgments hosted by the Supreme Court of India and include the official source
+page, direct PDF URL, retrieval time, local filename, SHA-256, byte size, and
+detected MIME type. `document_type` is required to be `judgment`, and the PDF
+text must contain an explicit judgment heading. This Supreme-Court-only set is
+deliberately a first pilot; later corpus rounds must add representative High
+Court commercial-division and Commercial Court judgments.
+
+Download or validate the pilot corpus with:
+
+```powershell
+python scripts/download_judgments.py
+```
+
+PDFs are stored under `data/raw/judgments/`, which is Git-ignored. The manifest
+is the resume checkpoint: an existing file is parsed, re-hashed, and reused
+without another HTTP request. New responses are accepted only when they come
+from an HTTPS `.gov.in` or `.nic.in` host, have PDF magic, open with a PDF
+parser, contain pages and at least 200 extractable non-whitespace characters,
+and have a corpus-unique hash. Downloads use explicit timeouts, bounded retries,
+and exponential backoff. Files are placed atomically only after validation.
+
+The latest categorized audit is written to
+`data/manifests/judgments_pilot_audit.json`. Individual errors are appended to
+the Git-ignored `data/failed/judgment_downloads.jsonl`. CAPTCHA-protected search
+interfaces are not automated; unavailable sources remain failures for manual
+review.
+
+Convert the locally validated PDFs to canonical ingestion JSONL with:
+
+```powershell
+python scripts/extract_judgments.py --restart
+python scripts/ingest_corpus.py data/processed/judgments_pilot.jsonl --restart
+```
+
+Extraction uses `pypdf` only and does not perform OCR. It rejects encrypted,
+corrupt, empty, and non-text PDFs, verifies each file against the acquisition
+manifest, and joins page text with a form-feed (`\f`) boundary. The canonical
+records contain only `title`, `case_number`, `court`, `judgment_date`, `source`,
+`source_url`, and `raw_text`; `source_url` is the official direct PDF URL.
+Processed JSONL, extraction checkpoints, and failure logs are Git-ignored. The
+tracked aggregate audit is
+`data/manifests/judgments_pilot_extraction_audit.json`. Without `--restart`,
+completed PDFs whose manifest hashes match the checkpoint are safely reused.
+
 ## Ingest a JSONL corpus
 
 Input must contain one JSON object per line. A minimal record looks like:
@@ -219,6 +272,11 @@ number/page extraction, relational insertion, duplicate skipping, statute
 storage, resumable failure-tolerant ingestion, checkpoint safeguards, and Qdrant
 collection/payload behavior. Migration tests upgrade both empty and legacy
 temporary databases and verify that migration/runtime UUID generation agrees.
+Mocked acquisition tests cover retries, resume behavior, PDF validation,
+deduplication, failure categories, and the tracked 20-record manifest contract.
+Extraction tests use generated in-memory PDFs and cover form-feed page
+boundaries, atomic resume, metadata failures, and rejection of corrupt,
+encrypted, and non-text PDFs; tests never download the real pilot files.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

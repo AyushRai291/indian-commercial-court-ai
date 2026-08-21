@@ -1,0 +1,218 @@
+{
+  "generated_at": "2026-08-21T15:13:45.147179+00:00",
+  "manifest": "data/manifests/judgments_pilot.jsonl",
+  "output": "data/processed/judgments_pilot.jsonl",
+  "counts": {
+    "extracted": 20,
+    "failures": 0,
+    "missing_metadata": 0,
+    "pages": 777,
+    "characters": 1028669
+  },
+  "details": {
+    "extracted": [
+      {
+        "record_number": 1,
+        "local_filename": "2019-11-26_perkins-eastman-v-hscc.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2019/27558/27558_2019_6_1501_18525_Judgement_26-Nov-2019.pdf",
+        "sha256": "08e49e3bb37a16453df12cd83a2d53a5c49293ee085a29a5f3e2072444d0dafe",
+        "page_count": 37,
+        "text_characters": 52271,
+        "form_feed_boundaries": 36,
+        "resumed": true
+      },
+      {
+        "record_number": 2,
+        "local_filename": "2021-08-24_sepco-electric-v-power-mech.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/10376/10376_2021_38_1501_29510_Judgement_24-Aug-2021.pdf",
+        "sha256": "4bb8ac981464b4cba8e765008292ea6877b2d59ff7bbab6111f68fd02fff362b",
+        "page_count": 36,
+        "text_characters": 42271,
+        "form_feed_boundaries": 35,
+        "resumed": true
+      },
+      {
+        "record_number": 3,
+        "local_filename": "2022-04-21_vishram-varu-v-union-of-india.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2022/7302/7302_2022_12_1502_35078_Judgement_21-Apr-2022.pdf",
+        "sha256": "1a798b64d162631fcee401cf7bd61f4113486ecc892a0f5535d95c98587ffbe8",
+        "page_count": 7,
+        "text_characters": 7409,
+        "form_feed_boundaries": 6,
+        "resumed": true
+      },
+      {
+        "record_number": 4,
+        "local_filename": "2023-08-17_konkan-railway-v-chenab-bridge.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2023/282/282_2023_16_1502_46153_Judgement_17-Aug-2023.pdf",
+        "sha256": "7b89f1107e713a44fadcb435057b40cfe5cb3ac2e294f304e6e0700767402cc0",
+        "page_count": 21,
+        "text_characters": 28301,
+        "form_feed_boundaries": 20,
+        "resumed": true
+      },
+      {
+        "record_number": 5,
+        "local_filename": "2024-03-01_arif-azim-v-aptech.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2023/16419/16419_2023_1_1501_51000_Judgement_01-Mar-2024.pdf",
+        "sha256": "107618a0046c1fabe701443c1ce3d7abf50f5dad5efc10f305da864f6d683280",
+        "page_count": 58,
+        "text_characters": 84920,
+        "form_feed_boundaries": 57,
+        "resumed": true
+      },
+      {
+        "record_number": 6,
+        "local_filename": "2021-11-22_gyan-prakash-arya-v-titan.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/17722/17722_2021_43_1502_31439_Judgement_22-Nov-2021.pdf",
+        "sha256": "ec44400da4351cd648e3bbc9184795ca2f6bfd1fa91d91d72cb39d0aa7e63765",
+        "page_count": 9,
+        "text_characters": 11535,
+        "form_feed_boundaries": 8,
+        "resumed": true
+      },
+      {
+        "record_number": 7,
+        "local_filename": "2021-09-14_arcelor-mittal-v-essar-bulk.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/19847/19847_2021_8_1501_29979_Judgement_14-Sep-2021.pdf",
+        "sha256": "157aeb99a87fe79a5919d3ac44bce411d722a3776263148f17952e7310b062b0",
+        "page_count": 76,
+        "text_characters": 107803,
+        "form_feed_boundaries": 75,
+        "resumed": true
+      },
+      {
+        "record_number": 8,
+        "local_filename": "2024-09-12_rohan-builders-v-berger-paints.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2023/41496/41496_2023_2_1501_55557_Judgement_12-Sep-2024.pdf",
+        "sha256": "4ea4ded797c6fbcdfd9f7f8ddf9876dad9d0cd7da87c5944edca50b49aca673c",
+        "page_count": 16,
+        "text_characters": 29084,
+        "form_feed_boundaries": 15,
+        "resumed": true
+      },
+      {
+        "record_number": 9,
+        "local_filename": "2021-09-09_delhi-airport-metro-v-dmrc.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2019/3712/3712_2019_35_1501_29929_Judgement_09-Sep-2021.pdf",
+        "sha256": "3a1000cccd7ef16475fb187b3ebe64e5c6a84761ca2482acb869f8b9bbcb62ea",
+        "page_count": 54,
+        "text_characters": 57455,
+        "form_feed_boundaries": 53,
+        "resumed": true
+      },
+      {
+        "record_number": 10,
+        "local_filename": "2019-11-15_essar-steel-coc-v-satish-kumar-gupta.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2019/24417/24417_2019_4_1501_18158_Judgement_15-Nov-2019.pdf",
+        "sha256": "e32e93e13ce293850684dfa3ec6e3a5b54751424657c8a46af52e6e930f1d004",
+        "page_count": 164,
+        "text_characters": 223644,
+        "form_feed_boundaries": 163,
+        "resumed": true
+      },
+      {
+        "record_number": 11,
+        "local_filename": "2021-11-29_gpr-power-v-supriyo-chaudhuri.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/23704/23704_2021_38_42_31628_Judgement_29-Nov-2021.pdf",
+        "sha256": "d4945293ba0f9b2ef34bb55d8bc097e542a728bc318b97cd726d9e5ee0eeea36",
+        "page_count": 8,
+        "text_characters": 10198,
+        "form_feed_boundaries": 7,
+        "resumed": true
+      },
+      {
+        "record_number": 12,
+        "local_filename": "2023-09-13_r-raghavendran-v-c-raja-john.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2022/8619/8619_2022_2_101_46839_Judgement_13-Sep-2023.pdf",
+        "sha256": "85601d0f3c7d230116f05559e4e4cec874d27ea3bcad6a370bd28e51e32566ad",
+        "page_count": 11,
+        "text_characters": 9894,
+        "form_feed_boundaries": 10,
+        "resumed": true
+      },
+      {
+        "record_number": 13,
+        "local_filename": "2023-05-11_suresh-kumar-reddy-v-canara-bank.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2022/31608/31608_2022_14_1502_44326_Judgement_11-May-2023.pdf",
+        "sha256": "6ba2c36d3eaae5e6ff330d00e1657ed52f9387692bfb172e96b117aae8c6b759",
+        "page_count": 23,
+        "text_characters": 20737,
+        "form_feed_boundaries": 22,
+        "resumed": true
+      },
+      {
+        "record_number": 14,
+        "local_filename": "2022-07-12_vidarbha-industries-v-axis-bank.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/6048/6048_2021_7_1502_36306_Judgement_12-Jul-2022.pdf",
+        "sha256": "7382ed95164ac719e7912cde7601f9051be41b4df4c04aada500bf3aee11312d",
+        "page_count": 34,
+        "text_characters": 46943,
+        "form_feed_boundaries": 33,
+        "resumed": true
+      },
+      {
+        "record_number": 15,
+        "local_filename": "2024-02-12_greater-noida-v-prabhjit-singh-soni.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2023/3628/3628_2023_1_1501_50338_Judgement_12-Feb-2024.pdf",
+        "sha256": "0d601790ad48f16c57c5f1dc16511523f7f8df17d30cf255079b85c1a5aa4fcd",
+        "page_count": 38,
+        "text_characters": 55372,
+        "form_feed_boundaries": 37,
+        "resumed": true
+      },
+      {
+        "record_number": 16,
+        "local_filename": "2024-01-03_bharti-airtel-v-vijaykumar-iyer.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2020/17890/17890_2020_2_1503_49136_Judgement_03-Jan-2024.pdf",
+        "sha256": "6c4d930886600aaf11d088496169697cc81bf596ea0b7b8fa3d88fa9581c21a9",
+        "page_count": 41,
+        "text_characters": 50579,
+        "form_feed_boundaries": 40,
+        "resumed": true
+      },
+      {
+        "record_number": 17,
+        "local_filename": "2019-10-04_ambalal-sarabhai-v-ks-infraspace.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2019/12985/12985_2019_6_1501_17487_Judgement_04-Oct-2019.pdf",
+        "sha256": "fd74c7275672fc026a28f35c7070feecfe9b060a33cb5a429c48676fe1316564",
+        "page_count": 36,
+        "text_characters": 39248,
+        "form_feed_boundaries": 35,
+        "resumed": true
+      },
+      {
+        "record_number": 18,
+        "local_filename": "2022-09-23_mv-polaris-galaxy-v-banque-cantonale.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/28394/28394_2021_4_1501_38668_Judgement_23-Sep-2022.pdf",
+        "sha256": "b77f27e7e8dfa8e0ee59fe4552df1f5f03d90aa188f8003ee7828f711c318543",
+        "page_count": 37,
+        "text_characters": 54802,
+        "form_feed_boundaries": 36,
+        "resumed": true
+      },
+      {
+        "record_number": 19,
+        "local_filename": "2022-02-14_prakash-corporates-v-dee-vee-projects.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2021/19909/19909_2021_44_1501_33366_Judgement_14-Feb-2022.pdf",
+        "sha256": "f73208242bb54a066a7647922f42ebd8bdea271fec42bfd9618b4f0f62d0e9cb",
+        "page_count": 54,
+        "text_characters": 76265,
+        "form_feed_boundaries": 53,
+        "resumed": true
+      },
+      {
+        "record_number": 20,
+        "local_filename": "2020-12-01_sd-containers-v-mold-tek-packaging.pdf",
+        "source_url": "https://api.sci.gov.in/supremecourt/2020/20380/20380_2020_35_1501_24947_Judgement_01-Dec-2020.pdf",
+        "sha256": "ca5c5d7b05ab2b85c2eef827e2b9669e23da2c33dbc6ac3d0613e22d3fb7ddd7",
+        "page_count": 17,
+        "text_characters": 19938,
+        "form_feed_boundaries": 16,
+        "resumed": true
+      }
+    ],
+    "failures": [],
+    "missing_metadata": []
+  }
+}
