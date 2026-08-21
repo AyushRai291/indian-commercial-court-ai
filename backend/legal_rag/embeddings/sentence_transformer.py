@@ -50,7 +50,13 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     @property
     def dimension(self) -> int:
         if self._dimension is None:
-            dimension = self._load_model().get_sentence_embedding_dimension()
+            model = self._load_model()
+            dimension_getter = getattr(model, "get_embedding_dimension", None)
+            dimension = (
+                dimension_getter()
+                if callable(dimension_getter)
+                else model.get_sentence_embedding_dimension()
+            )
             if dimension is None:
                 probe = self.embed_documents(["embedding dimension probe"], batch_size=1)
                 dimension = len(probe[0])

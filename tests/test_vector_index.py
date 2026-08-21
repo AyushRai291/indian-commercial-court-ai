@@ -155,6 +155,31 @@ def test_qdrant_point_struct_persists_uuid_id_and_payload() -> None:
     assert stored[0].payload == {"paragraph_uid": paragraph_uid}
 
 
+def test_qdrant_point_ids_are_scrolled_without_embedding_downloads() -> None:
+    identifiers = [
+        "00000000-0000-5000-8000-000000000001",
+        "00000000-0000-5000-8000-000000000002",
+        "00000000-0000-5000-8000-000000000003",
+    ]
+
+    class FakeScrollingQdrant:
+        def scroll(self, *, offset=None, **_kwargs):
+            if offset is None:
+                return (
+                    [SimpleNamespace(id=value) for value in identifiers[:2]],
+                    identifiers[1],
+                )
+            return ([SimpleNamespace(id=identifiers[2])], None)
+
+    paragraph_index = QdrantParagraphIndex(
+        url="http://unused.test",
+        collection_name="paragraphs",
+        client=FakeScrollingQdrant(),
+    )
+
+    assert paragraph_index.list_point_ids(batch_size=2) == identifiers
+
+
 def test_index_vectors_uses_paragraph_uid_for_qdrant_point_id(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

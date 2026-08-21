@@ -18,6 +18,7 @@ backend/legal_rag/
   schema_migrations.py      Safe empty/legacy/versioned database upgrades
   acquisition.py            Resumable official-PDF download and validation
   extraction.py             Resumable PDF-to-canonical-JSONL conversion
+  corpus_audit.py           Relational quality and vector-coverage metrics
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
@@ -25,6 +26,7 @@ backend/legal_rag/
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
   extract_judgments.py      Text-native PDF extraction with page boundaries
+  audit_corpus.py           PostgreSQL quality and Qdrant identity audit
   migrate_database.py       Validated legacy-to-Alembic upgrade command
   ingest_corpus.py          Resumable JSONL ingestion
   index_vectors.py          PostgreSQL-to-Qdrant paragraph indexing
@@ -186,6 +188,39 @@ tracked aggregate audit is
 `data/manifests/judgments_pilot_extraction_audit.json`. Without `--restart`,
 completed PDFs whose manifest hashes match the checkpoint are safely reused.
 
+## Pilot corpus audit and vector index
+
+Generate relational quality metrics before indexing, rebuild Qdrant from the
+authoritative PostgreSQL paragraphs, and then verify exact identity coverage:
+
+```powershell
+python scripts/audit_corpus.py --skip-qdrant
+python scripts/index_vectors.py --recreate
+python scripts/audit_corpus.py
+```
+
+The tracked report is
+`data/manifests/judgments_pilot_corpus_audit.json`. It includes case/paragraph
+counts, nearest-rank p95 and other per-case paragraph statistics, missing
+metadata, empty and sub-20-character paragraph counts, duplicate hashes/UUIDs,
+page-number coverage, and a full PostgreSQL `paragraph_uid` versus Qdrant point
+ID comparison. `--recreate` is destructive only to the configured Qdrant
+collection and is the supported way to remove stale points before a rebuild.
+
+Run the pilot semantic sanity queries with:
+
+```powershell
+python scripts/test_search.py "unilateral appointment of arbitrator" --top-k 10
+python scripts/test_search.py "commercial wisdom of committee of creditors" --top-k 10
+python scripts/test_search.py "Section 7 IBC admission discretion" --top-k 10
+```
+
+These three searches are smoke checks, not a formal retrieval evaluation. This
+small, Supreme-Court-only pilot cannot measure production recall, ranking
+quality, court coverage, or temporal coverage. Representative High Court
+commercial-division and Commercial Court judgments, followed by labeled query
+relevance judgments, are required before retrieval quality can be evaluated.
+
 ## Ingest a JSONL corpus
 
 Input must contain one JSON object per line. A minimal record looks like:
@@ -277,6 +312,8 @@ deduplication, failure categories, and the tracked 20-record manifest contract.
 Extraction tests use generated in-memory PDFs and cover form-feed page
 boundaries, atomic resume, metadata failures, and rejection of corrupt,
 encrypted, and non-text PDFs; tests never download the real pilot files.
+Corpus-audit tests use a temporary SQLite database and fake Qdrant pagination;
+they do not require Docker or download an embedding model.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

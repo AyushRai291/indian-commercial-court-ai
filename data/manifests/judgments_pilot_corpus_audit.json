@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-08-21T15:59:46.905971+00:00",
+  "counts": {
+    "cases": 20,
+    "paragraphs": 2547
+  },
+  "paragraphs_per_case": {
+    "min": 14,
+    "median": 111.5,
+    "p95": 300,
+    "max": 325
+  },
+  "missing_metadata": {
+    "court": 0,
+    "judgment_date": 0,
+    "case_number": 0,
+    "source_url": 0
+  },
+  "paragraph_quality": {
+    "empty": 0,
+    "very_short": 175,
+    "very_short_threshold_characters": 20
+  },
+  "duplicates": {
+    "document_hashes": 0,
+    "document_rows_beyond_first": 0,
+    "paragraph_uids": 0,
+    "paragraph_rows_beyond_first": 0
+  },
+  "page_number_coverage": {
+    "with_page_number": 2547,
+    "without_page_number": 0,
+    "percentage": 100.0
+  },
+  "qdrant_coverage": {
+    "postgres_paragraphs": 2547,
+    "postgres_unique_uids": 2547,
+    "qdrant_points": 2547,
+    "qdrant_unique_point_ids": 2547,
+    "missing_points": 0,
+    "stale_orphan_points": 0,
+    "duplicate_points": 0,
+    "missing_point_id_sample": [],
+    "stale_point_id_sample": []
+  }
+}

@@ -125,6 +125,26 @@ class QdrantParagraphIndex:
         )
         return len(points)
 
+    def list_point_ids(self, *, batch_size: int = 256) -> list[int | str]:
+        """Return all point IDs using Qdrant's paginated scroll API."""
+
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+        point_ids: list[int | str] = []
+        offset: int | str | None = None
+        while True:
+            points, next_offset = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=batch_size,
+                offset=offset,
+                with_payload=False,
+                with_vectors=False,
+            )
+            point_ids.extend(point.id for point in points)
+            if next_offset is None:
+                return point_ids
+            offset = next_offset
+
     def search(
         self,
         query_vector: Sequence[float],
