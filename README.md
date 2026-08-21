@@ -6,7 +6,7 @@ deduplicates and stores cases and paragraphs in PostgreSQL, and indexes paragrap
 embeddings in Qdrant.
 
 The current scope deliberately excludes a frontend, LLM answer generation,
-LangChain, OpenSearch, hybrid fusion/RRF, OCR, and authentication.
+LangChain, OpenSearch, metadata filtering, reranking, OCR, and authentication.
 
 ## Repository layout
 
@@ -22,7 +22,7 @@ backend/legal_rag/
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
-  retrieval/                Shared search results and PostgreSQL-backed BM25
+  retrieval/                Dense, BM25, and rank-fused paragraph retrieval
   vector/                   Qdrant paragraph index adapter
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
@@ -299,7 +299,7 @@ when this flag is supplied. If `EMBEDDING_MODEL` is changed, set its matching
 `EMBEDDING_DIMENSION` and use a new `QDRANT_COLLECTION`; an incompatible existing
 collection is rejected instead of overwritten.
 
-## Independent dense and BM25 search
+## Dense, BM25, and hybrid search
 
 Print the top five semantically similar legal paragraphs:
 
@@ -325,9 +325,21 @@ stored paragraph text. The CLI reports index-build and query timing on each run.
 
 Dense and BM25 retrieval expose the same typed paragraph result fields, including
 durable `paragraph_uid`, rank, native retrieval score, case metadata, paragraph
-and page numbers, and source URL. They remain independent retrieval modes: BM25
-scores are not converted to probabilities, and hybrid fusion/RRF is not
-implemented yet.
+and page numbers, and source URL. Both remain independently usable.
+
+Hybrid search retrieves up to 50 candidates independently from each retriever
+and combines their rank positions with Reciprocal Rank Fusion (RRF), using the
+conventional default `k=60`:
+
+```powershell
+python scripts/test_hybrid.py "commercial wisdom of committee of creditors" --top-k 10
+```
+
+Use `--bm25-depth`, `--dense-depth`, or `--rrf-k` to override those values for a
+run. RRF never mixes or normalizes raw BM25 and cosine scores; the hybrid output
+retains each native rank and score only as provenance alongside the final RRF
+score. Results are deduplicated by durable `paragraph_uid`. Metadata filtering
+and cross-encoder reranking are not implemented yet.
 
 ## Tests
 
@@ -353,6 +365,10 @@ they do not require Docker or download an embedding model.
 BM25 tests use only synthetic in-memory paragraph fixtures and cover lexical
 relevance, document frequency, term-frequency saturation, shared dense/lexical
 result fields, validation, deduplication, and deterministic tie ordering.
+Hybrid tests use synthetic retriever outputs and cover exact RRF mathematics,
+cross-list boosting, one-list candidates, UID deduplication, deterministic ties,
+validation, candidate depths, and rank/native-score provenance without Docker or
+an embedding download.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date, datetime
 
+from legal_rag.embeddings import EmbeddingProvider
 from legal_rag.retrieval.results import ParagraphSearchResult
 from legal_rag.vector import QdrantParagraphIndex, SemanticSearchResult
 
@@ -90,3 +91,28 @@ def search_dense(
 
     hits = paragraph_index.search(query_vector, limit=top_k)
     return semantic_hits_to_results(hits)
+
+
+class DenseParagraphRetriever:
+    """Adapt an embedding provider and Qdrant index to textual paragraph search."""
+
+    def __init__(
+        self,
+        paragraph_index: QdrantParagraphIndex,
+        embedding_provider: EmbeddingProvider,
+    ) -> None:
+        self.paragraph_index = paragraph_index
+        self.embedding_provider = embedding_provider
+
+    def search(self, query: str, *, top_k: int) -> list[ParagraphSearchResult]:
+        if not isinstance(query, str):
+            raise TypeError("query must be a string")
+        if not query.strip():
+            raise ValueError("query must not be empty")
+        if top_k <= 0:
+            raise ValueError("top_k must be positive")
+        return search_dense(
+            self.paragraph_index,
+            self.embedding_provider.embed_query(query),
+            top_k=top_k,
+        )

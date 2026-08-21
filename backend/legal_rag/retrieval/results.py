@@ -22,3 +22,19 @@ class ParagraphSearchResult:
     page_number: int | None
     score: float
     rank: int
+
+
+@dataclass(frozen=True, slots=True)
+class HybridSearchResult(ParagraphSearchResult):
+    """A fused paragraph hit with the native ranks and scores that produced it."""
+
+    bm25_rank: int | None
+    dense_rank: int | None
+    bm25_score: float | None
+    dense_score: float | None
+
+    @property
+    def rrf_score(self) -> float:
+        """Expose the inherited score explicitly as the final RRF score."""
+
+        return self.score
