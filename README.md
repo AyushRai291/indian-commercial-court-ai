@@ -144,12 +144,22 @@ The normalizer also recognizes common aliases such as `case_title`, `case_name`,
 
 The first pilot corpus is defined by the tracked manifest at
 `data/manifests/judgments_pilot.jsonl`. Its records identify 20 commercial-law
-judgments hosted by the Supreme Court of India and include the official source
-page, direct PDF URL, retrieval time, local filename, SHA-256, byte size, and
-detected MIME type. `document_type` is required to be `judgment`, and the PDF
-text must contain an explicit judgment heading. This Supreme-Court-only set is
-deliberately a first pilot; later corpus rounds must add representative High
-Court commercial-division and Commercial Court judgments.
+judgments hosted directly by the Supreme Court of India and 80 additional
+judgments from the public Supreme Court judgment archive generated from the
+eCourts/Supreme Court Reports corpus. Every record includes the official SCR or
+judgment-search provenance page, exact PDF URL, retrieval time, local filename,
+SHA-256, byte size, and detected MIME type. `document_type` is required to be
+`judgment`, and the PDF text must contain an explicit judgment heading. This
+100-case, Supreme-Court-only set is deliberately a pilot; later corpus rounds
+must add representative High Court commercial-division and Commercial Court
+judgments.
+
+The archive is the CC-BY-4.0
+[Indian Supreme Court Judgments public dataset](https://github.com/vanga/indian-supreme-court-judgments),
+which documents its eCourts acquisition and publishes matching metadata. It is
+a mirror, not an official court host; the manifest therefore retains the
+official SCR search page separately and the downloader trusts only this exact
+archive hostname.
 
 Download or validate the pilot corpus with:
 
@@ -160,7 +170,8 @@ python scripts/download_judgments.py
 PDFs are stored under `data/raw/judgments/`, which is Git-ignored. The manifest
 is the resume checkpoint: an existing file is parsed, re-hashed, and reused
 without another HTTP request. New responses are accepted only when they come
-from an HTTPS `.gov.in` or `.nic.in` host, have PDF magic, open with a PDF
+from an HTTPS `.gov.in` or `.nic.in` host or the single allow-listed public
+Supreme Court judgment archive host. They must have PDF magic, open with a PDF
 parser, contain pages and at least 200 extractable non-whitespace characters,
 and have a corpus-unique hash. Downloads use explicit timeouts, bounded retries,
 and exponential backoff. Files are placed atomically only after validation.
@@ -182,7 +193,9 @@ Extraction uses `pypdf` only and does not perform OCR. It rejects encrypted,
 corrupt, empty, and non-text PDFs, verifies each file against the acquisition
 manifest, and joins page text with a form-feed (`\f`) boundary. The canonical
 records contain only `title`, `case_number`, `court`, `judgment_date`, `source`,
-`source_url`, and `raw_text`; `source_url` is the official direct PDF URL.
+`source_url`, and `raw_text`; `source_url` retains the exact direct PDF URL from
+the acquisition manifest, while the acquisition manifest's `source_page_url`
+preserves official provenance.
 Processed JSONL, extraction checkpoints, and failure logs are Git-ignored. The
 tracked aggregate audit is
 `data/manifests/judgments_pilot_extraction_audit.json`. Without `--restart`,
@@ -203,9 +216,10 @@ The tracked report is
 `data/manifests/judgments_pilot_corpus_audit.json`. It includes case/paragraph
 counts, nearest-rank p95 and other per-case paragraph statistics, missing
 metadata, empty and sub-20-character paragraph counts, duplicate hashes/UUIDs,
-page-number coverage, and a full PostgreSQL `paragraph_uid` versus Qdrant point
-ID comparison. `--recreate` is destructive only to the configured Qdrant
-collection and is the supported way to remove stale points before a rebuild.
+page-number coverage, acquisition/extraction outcomes, and a full PostgreSQL
+`paragraph_uid` versus Qdrant point-ID comparison including indexing coverage.
+`--recreate` is destructive only to the configured Qdrant collection and is the
+supported way to remove stale points before a rebuild.
 
 Run the pilot semantic sanity queries with:
 
@@ -216,7 +230,7 @@ python scripts/test_search.py "Section 7 IBC admission discretion" --top-k 10
 ```
 
 These three searches are smoke checks, not a formal retrieval evaluation. This
-small, Supreme-Court-only pilot cannot measure production recall, ranking
+100-case, Supreme-Court-only pilot cannot measure production recall, ranking
 quality, court coverage, or temporal coverage. Representative High Court
 commercial-division and Commercial Court judgments, followed by labeled query
 relevance judgments, are required before retrieval quality can be evaluated.
@@ -308,7 +322,8 @@ storage, resumable failure-tolerant ingestion, checkpoint safeguards, and Qdrant
 collection/payload behavior. Migration tests upgrade both empty and legacy
 temporary databases and verify that migration/runtime UUID generation agrees.
 Mocked acquisition tests cover retries, resume behavior, PDF validation,
-deduplication, failure categories, and the tracked 20-record manifest contract.
+deduplication, failure categories, allow-listed archive provenance, and the
+tracked 100-record manifest contract.
 Extraction tests use generated in-memory PDFs and cover form-feed page
 boundaries, atomic resume, metadata failures, and rejection of corrupt,
 encrypted, and non-text PDFs; tests never download the real pilot files.

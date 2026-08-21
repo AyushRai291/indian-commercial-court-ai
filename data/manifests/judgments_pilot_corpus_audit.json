@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-08-21T15:59:46.905971+00:00",
+  "generated_at": "2026-08-21T16:48:06.327566+00:00",
   "counts": {
-    "cases": 20,
-    "paragraphs": 2547
+    "cases": 100,
+    "paragraphs": 18822
   },
   "paragraphs_per_case": {
     "min": 14,
-    "median": 111.5,
-    "p95": 300,
-    "max": 325
+    "median": 141.5,
+    "p95": 481,
+    "max": 969
   },
   "missing_metadata": {
     "court": 0,
@@ -18,7 +18,7 @@
   },
   "paragraph_quality": {
     "empty": 0,
-    "very_short": 175,
+    "very_short": 570,
     "very_short_threshold_characters": 20
   },
   "duplicates": {
@@ -28,18 +28,40 @@
     "paragraph_rows_beyond_first": 0
   },
   "page_number_coverage": {
-    "with_page_number": 2547,
+    "with_page_number": 18822,
     "without_page_number": 0,
     "percentage": 100.0
   },
+  "pipeline": {
+    "acquisition": {
+      "downloaded": 100,
+      "duplicates": 0,
+      "invalid_pdfs": 0,
+      "scanned_pdfs": 0,
+      "failed_urls": 0,
+      "missing_metadata": 0
+    },
+    "extraction": {
+      "extracted": 100,
+      "failures": 0,
+      "missing_metadata": 0,
+      "pages": 5789,
+      "characters": 10524729
+    },
+    "ingestion": {
+      "successfully_ingested_cases": 100,
+      "stored_paragraphs": 18822
+    }
+  },
   "qdrant_coverage": {
-    "postgres_paragraphs": 2547,
-    "postgres_unique_uids": 2547,
-    "qdrant_points": 2547,
-    "qdrant_unique_point_ids": 2547,
+    "postgres_paragraphs": 18822,
+    "postgres_unique_uids": 18822,
+    "qdrant_points": 18822,
+    "qdrant_unique_point_ids": 18822,
     "missing_points": 0,
     "stale_orphan_points": 0,
     "duplicate_points": 0,
+    "indexing_coverage_percentage": 100.0,
     "missing_point_id_sample": [],
     "stale_point_id_sample": []
   }

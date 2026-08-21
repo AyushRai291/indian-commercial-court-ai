@@ -113,6 +113,7 @@ def compare_vector_coverage(
     qdrant_set = set(qdrant_ids)
     missing = sorted(postgres_set - qdrant_set)
     stale = sorted(qdrant_set - postgres_set)
+    indexed = len(postgres_set & qdrant_set)
 
     return {
         "postgres_paragraphs": len(postgres_ids),
@@ -122,6 +123,11 @@ def compare_vector_coverage(
         "missing_points": len(missing),
         "stale_orphan_points": len(stale),
         "duplicate_points": len(qdrant_ids) - len(qdrant_set),
+        "indexing_coverage_percentage": (
+            round(100.0 * indexed / len(postgres_set), 2)
+            if postgres_set
+            else 0.0
+        ),
         "missing_point_id_sample": missing[:20],
         "stale_point_id_sample": stale[:20],
     }

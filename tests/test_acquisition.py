@@ -205,12 +205,12 @@ def test_audit_categorizes_duplicate_invalid_scanned_failed_and_missing(
     }
 
 
-def test_tracked_pilot_manifest_has_20_complete_unique_records() -> None:
+def test_tracked_pilot_manifest_has_100_complete_unique_records() -> None:
     records = load_manifest(
         PROJECT_ROOT / "data" / "manifests" / "judgments_pilot.jsonl"
     )
 
-    assert len(records) == 20
+    assert len(records) == 100
     for record in records:
         validate_source_record(record)
         assert datetime.fromisoformat(str(record["retrieval_timestamp"]))
@@ -230,4 +230,21 @@ def test_order_document_type_is_rejected() -> None:
     record = _record("order")
     record["document_type"] = "order"
     with pytest.raises(MissingMetadataError, match="document_type"):
+        validate_source_record(record)
+
+
+def test_allowlisted_supreme_court_archive_download_is_accepted() -> None:
+    record = _record("archive")
+    record["source_page_url"] = "https://scr.sci.gov.in/scrsearch/"
+    record["direct_pdf_url"] = (
+        "https://indian-supreme-court-judgments.s3.amazonaws.com/"
+        "data/pdf/year=2021/english/example_EN.pdf"
+    )
+    validate_source_record(record)
+
+
+def test_untrusted_download_archive_is_rejected() -> None:
+    record = _record("archive")
+    record["direct_pdf_url"] = "https://example.com/judgment.pdf"
+    with pytest.raises(MissingMetadataError, match="direct_pdf_url"):
         validate_source_record(record)

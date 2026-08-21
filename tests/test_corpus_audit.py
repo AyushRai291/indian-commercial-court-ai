@@ -115,5 +115,6 @@ def test_vector_coverage_reports_missing_stale_and_duplicate_points() -> None:
     assert coverage["missing_points"] == 1
     assert coverage["stale_orphan_points"] == 1
     assert coverage["duplicate_points"] == 1
+    assert coverage["indexing_coverage_percentage"] == 50.0
     assert coverage["missing_point_id_sample"] == ["uid-a"]
     assert coverage["stale_point_id_sample"] == ["uid-c"]

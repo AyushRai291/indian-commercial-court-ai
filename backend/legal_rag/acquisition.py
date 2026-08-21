@@ -39,6 +39,9 @@ RESULT_FIELDS = (
 MANIFEST_FIELDS = SOURCE_FIELDS + RESULT_FIELDS
 
 _OFFICIAL_HOST_SUFFIXES = (".gov.in", ".nic.in")
+_TRUSTED_ARCHIVE_HOSTS = frozenset(
+    {"indian-supreme-court-judgments.s3.amazonaws.com"}
+)
 _RETRYABLE_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 
 
@@ -158,6 +161,14 @@ def _is_official_url(value: str) -> bool:
     )
 
 
+def _is_trusted_download_url(value: str) -> bool:
+    parsed = urlparse(value)
+    hostname = (parsed.hostname or "").lower()
+    return parsed.scheme == "https" and (
+        _is_official_url(value) or hostname in _TRUSTED_ARCHIVE_HOSTS
+    )
+
+
 def validate_source_record(record: Mapping[str, Any]) -> None:
     """Validate required metadata, filename safety, and official provenance."""
 
@@ -177,12 +188,18 @@ def validate_source_record(record: Mapping[str, Any]) -> None:
     if str(record["document_type"]).strip().lower() != "judgment":
         raise MissingMetadataError("document_type must be 'judgment'")
 
-    for field_name in ("source_page_url", "direct_pdf_url"):
-        value = str(record[field_name])
-        if not _is_official_url(value):
-            raise MissingMetadataError(
-                f"{field_name} must be an HTTPS URL on an official .gov.in or .nic.in host"
-            )
+    source_page_url = str(record["source_page_url"])
+    if not _is_official_url(source_page_url):
+        raise MissingMetadataError(
+            "source_page_url must be an HTTPS URL on an official .gov.in or .nic.in host"
+        )
+
+    direct_pdf_url = str(record["direct_pdf_url"])
+    if not _is_trusted_download_url(direct_pdf_url):
+        raise MissingMetadataError(
+            "direct_pdf_url must be an HTTPS URL on an official court host "
+            "or the allow-listed Supreme Court judgment archive"
+        )
 
 
 def extract_pdf_text(
@@ -329,9 +346,9 @@ class JudgmentDownloader:
             attempts_made = attempt
             try:
                 response = self.client.get(url)
-                if not _is_official_url(str(response.url)):
+                if not _is_trusted_download_url(str(response.url)):
                     raise AcquisitionError(
-                        f"download redirected to a non-official host: {response.url}"
+                        f"download redirected to an untrusted host: {response.url}"
                     )
                 response.raise_for_status()
                 content = response.content

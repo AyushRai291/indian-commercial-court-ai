@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-21T15:13:39.191340+00:00",
+  "generated_at": "2026-08-21T16:27:06.368885+00:00",
   "manifest": "data/manifests/judgments_pilot.jsonl",
   "document_types": {
-    "judgment": 20
+    "judgment": 100
   },
   "counts": {
-    "downloaded": 20,
+    "downloaded": 100,
     "duplicates": 0,
     "invalid_pdfs": 0,
     "scanned_pdfs": 0,
@@ -193,6 +193,726 @@
         "file_size": 95849,
         "page_count": 17,
         "text_characters": 19938
+      },
+      {
+        "record_number": 21,
+        "local_filename": "2017-07-03_2017-insc-577_trf-ltd-v-energo-engineering-projects-ltd.pdf",
+        "document_type": "judgment",
+        "sha256": "4ef41b4d76a23e3ff322f653fa0bf5d6b246eda9a83e85341528a58d9706d74d",
+        "file_size": 1117456,
+        "page_count": 33,
+        "text_characters": 63445
+      },
+      {
+        "record_number": 22,
+        "local_filename": "2017-02-10_2017-insc-1264_m-s-voestalpine-schienen-gmbh-v-delhi-metro-rail-corpor.pdf",
+        "document_type": "judgment",
+        "sha256": "a9d51ead3f72db1ddc140a3474401e6ac5cc31068ed9dca73d309cbfbbbd7990",
+        "file_size": 920984,
+        "page_count": 31,
+        "text_characters": 70050
+      },
+      {
+        "record_number": 23,
+        "local_filename": "2017-08-31_2017-insc-838_hrd-corporation-marcus-oil-and-chemical-division-v-gail.pdf",
+        "document_type": "judgment",
+        "sha256": "c5c1fd1393684f44390c58881637d43cdb858e965677262250348f82174bd3f1",
+        "file_size": 1218276,
+        "page_count": 36,
+        "text_characters": 67967
+      },
+      {
+        "record_number": 24,
+        "local_filename": "2017-04-19_2017-insc-369_indus-mobile-distribution-private-limited-v-datawind-in.pdf",
+        "document_type": "judgment",
+        "sha256": "59e5f2c179880c54434794e6a999f316e048b6173dac4b1a5a0ff91c734e505f",
+        "file_size": 548326,
+        "page_count": 16,
+        "text_characters": 29604
+      },
+      {
+        "record_number": 25,
+        "local_filename": "2017-07-04_2017-insc-589_roger-shashoua-others-v-mukesh-sharma-others.pdf",
+        "document_type": "judgment",
+        "sha256": "83c2aafa0bb17b4737ac17ea892feb22a3074dae7f1163434c0041520cd182ee",
+        "file_size": 1416804,
+        "page_count": 41,
+        "text_characters": 77674
+      },
+      {
+        "record_number": 26,
+        "local_filename": "2017-11-01_2017-insc-1069_venture-global-engineering-llc-v-tech-mahindra-ltd-anot.pdf",
+        "document_type": "judgment",
+        "sha256": "07843a9040ef76de21dbad89e90adca1295ad8d7ae3a2ee219aa14549dd06d21",
+        "file_size": 2446399,
+        "page_count": 72,
+        "text_characters": 134571
+      },
+      {
+        "record_number": 27,
+        "local_filename": "2019-12-10_2019-insc-1349_bgs-sgs-soma-jv-v-nhpc-ltd.pdf",
+        "document_type": "judgment",
+        "sha256": "37937558f5387265d732efd724df6ba04b0377a10e4b498648a5e36022f9e773",
+        "file_size": 907106,
+        "page_count": 86,
+        "text_characters": 162629
+      },
+      {
+        "record_number": 28,
+        "local_filename": "2019-04-16_2019-insc-537_bharat-broadband-network-limited-v-united-telecoms-limi.pdf",
+        "document_type": "judgment",
+        "sha256": "0e1cb20e217ba5e129da84de905426f19ae9e7b781d62734b94cb4eb680f52e9",
+        "file_size": 365699,
+        "page_count": 24,
+        "text_characters": 46799
+      },
+      {
+        "record_number": 29,
+        "local_filename": "2019-04-10_2019-insc-511_garware-wall-ropes-ltd-v-coastal-marine-constructions-e.pdf",
+        "document_type": "judgment",
+        "sha256": "a37dc3e4ddb69d8eee40635077ecabeb6e131ad21db015bf3eaffb08327cff9b",
+        "file_size": 643118,
+        "page_count": 39,
+        "text_characters": 72005
+      },
+      {
+        "record_number": 30,
+        "local_filename": "2019-05-08_2019-insc-647_ssangyong-construction-co-ltd-v-national-highways-autho.pdf",
+        "document_type": "judgment",
+        "sha256": "677f8819cb3206aff59db4091df3d0025671960c969ffdf52fffe59ab3128d56",
+        "file_size": 827426,
+        "page_count": 85,
+        "text_characters": 157330
+      },
+      {
+        "record_number": 31,
+        "local_filename": "2019-09-05_2019-insc-1008_m-s-mayavti-trading-pvt-ltd-v-pradyuat-deb-burman.pdf",
+        "document_type": "judgment",
+        "sha256": "f71bf0f9a55a71926bbcec1fc60ba918a44d241041aa52294ed69dead9e7ef8c",
+        "file_size": 166496,
+        "page_count": 14,
+        "text_characters": 23337
+      },
+      {
+        "record_number": 32,
+        "local_filename": "2019-09-03_2019-insc-989_m-s-geo-miller-co-pvt-ltd-v-chairman-rajasthan-vidyut-u.pdf",
+        "document_type": "judgment",
+        "sha256": "a026d4ffee5dac611d829f01c5815bf10d4a0402e0f81ae5aa359bdf3d27fd4c",
+        "file_size": 221640,
+        "page_count": 17,
+        "text_characters": 31479
+      },
+      {
+        "record_number": 33,
+        "local_filename": "2019-09-04_2019-insc-1002_rashid-raza-v-sadaf-akhtar.pdf",
+        "document_type": "judgment",
+        "sha256": "8c450035c9c17758b29a8cab6dabb622585730915fb9932d98b74c485aafbc29",
+        "file_size": 288872,
+        "page_count": 5,
+        "text_characters": 7557
+      },
+      {
+        "record_number": 34,
+        "local_filename": "2019-12-17_2019-insc-1394_g-h-central-organisation-for-railway-electrification-v.pdf",
+        "document_type": "judgment",
+        "sha256": "77f4662820f703f9ab19a65da7d3214d4f2c9f2d53296fe0daec30eb36507f22",
+        "file_size": 289952,
+        "page_count": 25,
+        "text_characters": 49722
+      },
+      {
+        "record_number": 35,
+        "local_filename": "2020-03-05_2020-insc-284_mankastu-impex-private-limited-v-airvisual-limited.pdf",
+        "document_type": "judgment",
+        "sha256": "13ac70110e371d8c2da15936bae5f6a21b598adb11f0c4c7facdc4b9769f2aae",
+        "file_size": 212899,
+        "page_count": 16,
+        "text_characters": 30278
+      },
+      {
+        "record_number": 36,
+        "local_filename": "2020-12-14_2020-insc-697_vidya-drolia-and-others-v-durga-trading-corporation.pdf",
+        "document_type": "judgment",
+        "sha256": "e43a1cf8dabdb4e13caad1836a5cb42bef50b79351cc72edc8ae1aa74773a063",
+        "file_size": 6514595,
+        "page_count": 180,
+        "text_characters": 340286
+      },
+      {
+        "record_number": 37,
+        "local_filename": "2020-08-19_2020-insc-498_avitel-post-studioz-limited-ors-v-hsbc-pi-holdings-maur.pdf",
+        "document_type": "judgment",
+        "sha256": "b568f29fa0494863fdbbdb41a34e23788391b876515e67fe8b794f1d0eb3c805",
+        "file_size": 543855,
+        "page_count": 66,
+        "text_characters": 127130
+      },
+      {
+        "record_number": 38,
+        "local_filename": "2020-09-16_2020-insc-548_government-of-india-v-1-vedanta-limited-formerly-cairn.pdf",
+        "document_type": "judgment",
+        "sha256": "1431b1b528039e19d9daf0da46fc150e54a4ebd724d2f91e500c95b163080254",
+        "file_size": 1677441,
+        "page_count": 101,
+        "text_characters": 162494
+      },
+      {
+        "record_number": 39,
+        "local_filename": "2020-11-26_2020-insc-659_noy-vallesina-engineering-spa-now-known-as-noy-ambiente.pdf",
+        "document_type": "judgment",
+        "sha256": "40b07e32c8b6a904186cf9289ec27e8de09daeb2756d8c114ed89fcbcee289ca",
+        "file_size": 578840,
+        "page_count": 38,
+        "text_characters": 67194
+      },
+      {
+        "record_number": 40,
+        "local_filename": "2021-01-11_2021-insc-12_m-s-n-n-global-mercantile-pvt-ltd-v-m-s-indo-unique-fla.pdf",
+        "document_type": "judgment",
+        "sha256": "b65f872cb2c06fefe42e94d5d73548f61e8d63f4fab90e676b30a26f78dcb69b",
+        "file_size": 1676969,
+        "page_count": 63,
+        "text_characters": 110120
+      },
+      {
+        "record_number": 41,
+        "local_filename": "2021-03-10_2021-insc-175_bharat-sanchar-nigam-ltd-anr-v-m-s-nortel-networks-indi.pdf",
+        "document_type": "judgment",
+        "sha256": "bf5952b7931d9b6e2b1190f1eafdc27c989a72d886a43fa2f5d7eec7ce2fd4ce",
+        "file_size": 672627,
+        "page_count": 33,
+        "text_characters": 62464
+      },
+      {
+        "record_number": 42,
+        "local_filename": "2021-03-08_2021-insc-166_pravin-electricals-pvt-ltd-v-galaxy-infra-and-engineeri.pdf",
+        "document_type": "judgment",
+        "sha256": "40695a0087eec974bd064cea0992d1bfee0df5ea96cc2ee277a61c80fc9fef4d",
+        "file_size": 426596,
+        "page_count": 37,
+        "text_characters": 71201
+      },
+      {
+        "record_number": 43,
+        "local_filename": "2021-04-13_2021-insc-251_m-s-inox-renewables-ltd-v-jayesh-electricals-ltd.pdf",
+        "document_type": "judgment",
+        "sha256": "cf4516f6fd1e45b752332957b13ca4da5cf53dd683cadedfbd9ddde5e5695d02",
+        "file_size": 212060,
+        "page_count": 12,
+        "text_characters": 22242
+      },
+      {
+        "record_number": 44,
+        "local_filename": "2021-04-20_2021-insc-264_pasl-wind-solutions-private-limited-v-ge-power-conversi.pdf",
+        "document_type": "judgment",
+        "sha256": "418b0c38a6a3df5907f3a1b957ad8198220854c7eb997e7b34dc381650650425",
+        "file_size": 3584718,
+        "page_count": 101,
+        "text_characters": 186141
+      },
+      {
+        "record_number": 45,
+        "local_filename": "2021-07-20_2021-insc-344_the-project-director-national-highways-no-45-e-and-220.pdf",
+        "document_type": "judgment",
+        "sha256": "4b59c53c111b98f316db1078e99b540169505bae978d2aa616edb4e960be6053",
+        "file_size": 689703,
+        "page_count": 40,
+        "text_characters": 76277
+      },
+      {
+        "record_number": 46,
+        "local_filename": "2021-08-10_2021-insc-392_gemini-bay-transcription-pvt-ltd-v-integrated-sales-ser.pdf",
+        "document_type": "judgment",
+        "sha256": "d20d36481a045ac7fc9ce961d3911bc720a7cfcd416297e4769f94663522aa77",
+        "file_size": 854351,
+        "page_count": 67,
+        "text_characters": 127033
+      },
+      {
+        "record_number": 47,
+        "local_filename": "2021-09-09_2021-insc-465_jaipur-zila-dugdh-utpadak-sahkari-sangh-limited-ors-v-m.pdf",
+        "document_type": "judgment",
+        "sha256": "6a4151c54ef228837b21b84d34e4f9bd48becda3c59a71eb9e94562ab0c9b2e1",
+        "file_size": 272707,
+        "page_count": 19,
+        "text_characters": 36773
+      },
+      {
+        "record_number": 48,
+        "local_filename": "2021-11-13_2021-insc-724_welspun-specialty-solutions-limited-formerly-known-as-r.pdf",
+        "document_type": "judgment",
+        "sha256": "63833b035663259764626a249096b0ef6a980ff53c4c63dfc9490a54b224325a",
+        "file_size": 616252,
+        "page_count": 22,
+        "text_characters": 37694
+      },
+      {
+        "record_number": 49,
+        "local_filename": "2021-08-06_2021-insc-385_amazon-com-nv-investment-holdings-llc-v-future-retail-l.pdf",
+        "document_type": "judgment",
+        "sha256": "39f8be6e7390cd0accfe906d790de18d18d657fc61890d0482a680c096c1160f",
+        "file_size": 842520,
+        "page_count": 91,
+        "text_characters": 171741
+      },
+      {
+        "record_number": 50,
+        "local_filename": "2021-09-22_2021-insc-524_dlf-home-developers-limited-v-rajapura-homes-private-li.pdf",
+        "document_type": "judgment",
+        "sha256": "68bc01989b5938b9582771a308f426287db4f87f33eae8df437c70cc018cb3c5",
+        "file_size": 979558,
+        "page_count": 27,
+        "text_characters": 50848
+      },
+      {
+        "record_number": 51,
+        "local_filename": "2022-01-04_2022-insc-11_ellora-paper-mills-limited-v-the-state-of-madhya-prades.pdf",
+        "document_type": "judgment",
+        "sha256": "8b5a721cab59f45786295912e21b2961af36fe83c5e0db42eae8f0621f1752e2",
+        "file_size": 387496,
+        "page_count": 21,
+        "text_characters": 41808
+      },
+      {
+        "record_number": 52,
+        "local_filename": "2022-01-03_2022-insc-7_i-pay-clearing-services-private-limited-v-icici-bank-li.pdf",
+        "document_type": "judgment",
+        "sha256": "f323aa254ff949c7fa2b98ab4a707f242fbba31cf2e424815ca1bbad1183f5be",
+        "file_size": 613191,
+        "page_count": 15,
+        "text_characters": 29945
+      },
+      {
+        "record_number": 53,
+        "local_filename": "2022-01-07_2022-insc-20_uhl-power-company-ltd-v-state-of-himachal-pradesh.pdf",
+        "document_type": "judgment",
+        "sha256": "07e8f6a901f1912a402e19c92f5fae8f5e973ac75079f60b33797f77cdec016d",
+        "file_size": 753902,
+        "page_count": 17,
+        "text_characters": 31252
+      },
+      {
+        "record_number": 54,
+        "local_filename": "2022-05-18_2022-insc-591_bbr-india-private-limited-v-s-p-singla-constructions-pr.pdf",
+        "document_type": "judgment",
+        "sha256": "795562057c88dacf9ecd9ad560250245b38dce6bb098b159bab98315281c4354",
+        "file_size": 602044,
+        "page_count": 21,
+        "text_characters": 44442
+      },
+      {
+        "record_number": 55,
+        "local_filename": "2022-04-27_2022-insc-483_oil-and-natural-gas-corporation-ltd-v-m-s-discovery-ent.pdf",
+        "document_type": "judgment",
+        "sha256": "5c1f8afc2aa53c8c25154ae0ad5fc3b6588e439c8dedee100c9fa93826fd9420",
+        "file_size": 1637292,
+        "page_count": 52,
+        "text_characters": 93727
+      },
+      {
+        "record_number": 56,
+        "local_filename": "2022-10-20_2022-insc-1123_weatherford-oil-tool-middle-east-limited-v-baker-hughes.pdf",
+        "document_type": "judgment",
+        "sha256": "6dad99973b2d818929c87e1db4dd4d296e80239b45de6cb716f63844c7c535c6",
+        "file_size": 294783,
+        "page_count": 15,
+        "text_characters": 28358
+      },
+      {
+        "record_number": 57,
+        "local_filename": "2023-12-06_2023-insc-1051_cox-and-kings-ltd-v-sap-india-pvt-ltd-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "65655f4a0c722e8841825dce1be324d6135001d1d7a78db806b3b871f7bafd31",
+        "file_size": 982309,
+        "page_count": 125,
+        "text_characters": 243552
+      },
+      {
+        "record_number": 58,
+        "local_filename": "2023-12-13_2023-insc-1066_in-re-interplay-between-arbitration-agreements-under-th.pdf",
+        "document_type": "judgment",
+        "sha256": "86ba0da19a97c81737167d1449e36e22ae3f7a7cae3c831b1298337833eb3ac5",
+        "file_size": 1180365,
+        "page_count": 132,
+        "text_characters": 254659
+      },
+      {
+        "record_number": 59,
+        "local_filename": "2024-07-18_2024-insc-532_sbi-general-insurance-co-ltd-v-krish-spinning.pdf",
+        "document_type": "judgment",
+        "sha256": "b02f77b48fd3bc2791a0b1830df041904751299e9eb455253faf72ca794d751d",
+        "file_size": 455736,
+        "page_count": 70,
+        "text_characters": 129502
+      },
+      {
+        "record_number": 60,
+        "local_filename": "2024-08-08_2024-insc-593_dlf-ltd-formerly-known-as-dlf-universal-ltd-and-anr-v-k.pdf",
+        "document_type": "judgment",
+        "sha256": "b076a8e999ec7433c38b33af74d7dfc4ad22765c201d93d7ac7a8e5d7c89e1d1",
+        "file_size": 314619,
+        "page_count": 31,
+        "text_characters": 58800
+      },
+      {
+        "record_number": 61,
+        "local_filename": "2017-08-31_2017-insc-837_m-s-innoventive-industrles-ltd-v-icici-bank-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "8db4336e4069e6ff7e5fedad991d77554847815669a2a4abbd412b77f54e117d",
+        "file_size": 2572309,
+        "page_count": 76,
+        "text_characters": 141211
+      },
+      {
+        "record_number": 62,
+        "local_filename": "2017-09-21_2017-insc-975_mobilox-innovations-private-limited-v-kirusa-software-p.pdf",
+        "document_type": "judgment",
+        "sha256": "ca6321eb8bc4059399be9c5b62eadc2f522660bc18958f9783c6c78d9911a6d3",
+        "file_size": 2248447,
+        "page_count": 67,
+        "text_characters": 117094
+      },
+      {
+        "record_number": 63,
+        "local_filename": "2018-10-11_2018-insc-956_b-k-educational-services-private-limited-v-parag-gupta.pdf",
+        "document_type": "judgment",
+        "sha256": "4cf4e2f2b18004e4bc9f244c58a166ea991e4e71622ae2a22604b9f0021b5636",
+        "file_size": 281417,
+        "page_count": 35,
+        "text_characters": 65629
+      },
+      {
+        "record_number": 64,
+        "local_filename": "2018-08-14_2018-insc-711_state-bank-of-india-v-v-ramakrishnan-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "a23dbada318e2c7602788056fb8090b4dcfbe4ed8f636b46b561c4b6a392cef0",
+        "file_size": 295476,
+        "page_count": 31,
+        "text_characters": 58828
+      },
+      {
+        "record_number": 65,
+        "local_filename": "2018-10-04_2018-insc-935_arcelormittal-india-private-limited-v-satish-kumar-gupt.pdf",
+        "document_type": "judgment",
+        "sha256": "d9830d7201c2613824f1efdb426a22675bb20678a37fbdb0ad6f413314c1f761",
+        "file_size": 2751601,
+        "page_count": 133,
+        "text_characters": 253183
+      },
+      {
+        "record_number": 66,
+        "local_filename": "2019-01-25_2019-insc-95_swiss-ribbons-pvt-ltd-anr-v-union-of-india-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "4872f6c07059de30c8376b414acb09719b2258a3679f30927b76b4db90399ebf",
+        "file_size": 1841393,
+        "page_count": 128,
+        "text_characters": 235886
+      },
+      {
+        "record_number": 67,
+        "local_filename": "2019-02-05_2019-insc-148_k-sashidhar-v-indian-overseas-bank-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "f5402f6942684087373469b299d6d62bd284cfe80abfe631b08033262ce5c8c4",
+        "file_size": 831246,
+        "page_count": 68,
+        "text_characters": 136791
+      },
+      {
+        "record_number": 68,
+        "local_filename": "2019-08-09_2019-insc-889_pioneer-urban-land-and-infrastructure-limited-anr-v-uni.pdf",
+        "document_type": "judgment",
+        "sha256": "b88c007151e60eb045b562086b4630480dc3aa0bd5e0d54028dc39d328dc6d97",
+        "file_size": 630695,
+        "page_count": 150,
+        "text_characters": 289256
+      },
+      {
+        "record_number": 69,
+        "local_filename": "2019-09-25_2019-insc-1080_jignesh-shah-anr-v-union-of-india-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "4dfe7eaf844cbd3ddf36797b5cb326fb48ce96274342402f90ad5e5874970d76",
+        "file_size": 457293,
+        "page_count": 33,
+        "text_characters": 63004
+      },
+      {
+        "record_number": 70,
+        "local_filename": "2019-12-03_2019-insc-1310_m-s-embassy-property-developments-pvt-ltd-v-state-of-ka.pdf",
+        "document_type": "judgment",
+        "sha256": "760b4068912b6ae0a1f5b537e488890eab2ac2a97f6e5302b70bd06df8f8bb62",
+        "file_size": 484828,
+        "page_count": 40,
+        "text_characters": 76803
+      },
+      {
+        "record_number": 71,
+        "local_filename": "2020-01-22_2020-insc-76_maharashtra-seamless-limited-v-padmanabhan-venkatesh-or.pdf",
+        "document_type": "judgment",
+        "sha256": "fefc38211f54d3aac87fdb720c05d9fd999efbb6caa988071f97d38a54018373",
+        "file_size": 238051,
+        "page_count": 25,
+        "text_characters": 48903
+      },
+      {
+        "record_number": 72,
+        "local_filename": "2020-02-26_2020-insc-227_anuj-jain-interim-resolution-professional-for-jaypee-in.pdf",
+        "document_type": "judgment",
+        "sha256": "e7933a3c08d2e0fe58c25794f3cbaee562d8bc3729cca11a0d3dfd3351b23920",
+        "file_size": 2428575,
+        "page_count": 152,
+        "text_characters": 306996
+      },
+      {
+        "record_number": 73,
+        "local_filename": "2021-02-01_2021-insc-51_phoenix-arc-private-limited-v-spade-financial-services.pdf",
+        "document_type": "judgment",
+        "sha256": "99297355ab59af2167c65711727137ebc4548c7776a8a0cdfcbeb8a3bf1eedef",
+        "file_size": 703972,
+        "page_count": 64,
+        "text_characters": 119440
+      },
+      {
+        "record_number": 74,
+        "local_filename": "2021-03-01_2021-insc-133_p-mohanraj-ors-v-m-s-shah-brothers-ispat-pvt-ltd.pdf",
+        "document_type": "judgment",
+        "sha256": "fccf31553d8eedd1c01706e902d2969134c85f58a04132500ed9845a0f2c6a86",
+        "file_size": 1041673,
+        "page_count": 117,
+        "text_characters": 223917
+      },
+      {
+        "record_number": 75,
+        "local_filename": "2021-03-08_2021-insc-163_gujarat-urja-vikas-nigam-limited-v-mr-amit-gupta-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "bb2de4775a6c3e5223cec9ca61ba498c605ec7daab5a5840354c529e3fdaee88",
+        "file_size": 1919564,
+        "page_count": 126,
+        "text_characters": 236893
+      },
+      {
+        "record_number": 76,
+        "local_filename": "2021-01-19_2021-insc-28_manish-kumar-v-union-of-india-and-another.pdf",
+        "document_type": "judgment",
+        "sha256": "c219dc9e50c145f9c3fa21d03a7dca2ded32600aa2da0de6a9df86f55782f650",
+        "file_size": 3226303,
+        "page_count": 266,
+        "text_characters": 520557
+      },
+      {
+        "record_number": 77,
+        "local_filename": "2021-03-15_2021-insc-187_arun-kumar-jagatramka-v-jindal-steel-and-power-ltd-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "63c0c4378a6134c1557a72328bb824a5ad72b1b04306ef26385f1087fb68ed28",
+        "file_size": 802502,
+        "page_count": 79,
+        "text_characters": 146569
+      },
+      {
+        "record_number": 78,
+        "local_filename": "2021-03-22_2021-insc-199_sesh-nath-singh-anr-v-baidyabati-sheoraphuli-co-operati.pdf",
+        "document_type": "judgment",
+        "sha256": "1157cb423bf4384bf3f6593f40b492729800eb8ab89d03d10dc7635785be9094",
+        "file_size": 513260,
+        "page_count": 53,
+        "text_characters": 97377
+      },
+      {
+        "record_number": 79,
+        "local_filename": "2021-04-13_2021-insc-250_ghanashyam-mishra-and-sons-private-limited-through-the.pdf",
+        "document_type": "judgment",
+        "sha256": "39820b8eadf841f00980b702ce48a8512771aa0b6fbe2b870e1a7d170047eb0a",
+        "file_size": 1133086,
+        "page_count": 86,
+        "text_characters": 169368
+      },
+      {
+        "record_number": 80,
+        "local_filename": "2021-04-15_2021-insc-254_asset-reconstruction-company-india-limited-v-bishal-jai.pdf",
+        "document_type": "judgment",
+        "sha256": "2283a47edd804c843213fe9db7f73fe093dde81533f190d2b72ddc3d89903697",
+        "file_size": 547139,
+        "page_count": 52,
+        "text_characters": 98819
+      },
+      {
+        "record_number": 81,
+        "local_filename": "2021-05-21_2021-insc-297_lalit-kumar-jain-v-union-of-india-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "0d257ad01ac79a3188e90122c01c7bfb2ec45e3313e0ad5db41a93e8790b754b",
+        "file_size": 1558021,
+        "page_count": 95,
+        "text_characters": 186170
+      },
+      {
+        "record_number": 82,
+        "local_filename": "2021-08-04_2021-insc-380_dena-bank-now-bank-of-baroda-v-c-shivakumar-reddy-and-a.pdf",
+        "document_type": "judgment",
+        "sha256": "038c3f3b33fa05c1debad123f8124d690b146e935ba1d6bf087339d7aa5b6dd6",
+        "file_size": 777105,
+        "page_count": 79,
+        "text_characters": 141151
+      },
+      {
+        "record_number": 83,
+        "local_filename": "2021-09-13_2021-insc-468_ebix-singapore-private-limited-v-committee-of-creditors.pdf",
+        "document_type": "judgment",
+        "sha256": "37a7512e2b0afea8716c673f68f631d1552e41285ab0b84e64c34ecd5434381c",
+        "file_size": 3554916,
+        "page_count": 182,
+        "text_characters": 341278
+      },
+      {
+        "record_number": 84,
+        "local_filename": "2021-03-24_2021-insc-206_jaypee-kensington-boulevard-apartments-welfare-associat.pdf",
+        "document_type": "judgment",
+        "sha256": "f4325bf5b8f065e0acccb2641d317f00e5d7b64f32f6f320864345863c431e8b",
+        "file_size": 6505745,
+        "page_count": 300,
+        "text_characters": 592915
+      },
+      {
+        "record_number": 85,
+        "local_filename": "2021-11-23_2021-insc-780_tata-consultancy-services-limited-v-vishal-ghisulal-jai.pdf",
+        "document_type": "judgment",
+        "sha256": "c46392951b73cdaadfe5ed97a8be5db31f6f8cf85bac8546bd268424fa967c64",
+        "file_size": 292107,
+        "page_count": 24,
+        "text_characters": 44877
+      },
+      {
+        "record_number": 86,
+        "local_filename": "2021-12-14_2021-insc-884_e-s-krishnamurthy-ors-v-m-s-bharath-hi-tech-builders-pv.pdf",
+        "document_type": "judgment",
+        "sha256": "ec0cadbf5e9e4b4753330b69ca024e02501c2341848b977bd4331702f07f3fe7",
+        "file_size": 904346,
+        "page_count": 29,
+        "text_characters": 51730
+      },
+      {
+        "record_number": 87,
+        "local_filename": "2022-02-04_2022-insc-150_m-s-consolidated-construction-consortium-limited-v-m-s.pdf",
+        "document_type": "judgment",
+        "sha256": "3517682289ae068ad0447637763247fc5a18ba534e4b380ed728b3c2c7e92cf0",
+        "file_size": 927095,
+        "page_count": 42,
+        "text_characters": 73463
+      },
+      {
+        "record_number": 88,
+        "local_filename": "2022-04-19_2022-insc-438_sunil-kumar-jain-and-others-v-sundaresh-bhatt-and-other.pdf",
+        "document_type": "judgment",
+        "sha256": "c5542255a2cd398fa1350e8008de4dcc031d4afd73c6a823b2af21539d469d2d",
+        "file_size": 479061,
+        "page_count": 26,
+        "text_characters": 48935
+      },
+      {
+        "record_number": 89,
+        "local_filename": "2022-05-30_2022-insc-630_kotak-mahindra-bank-limited-v-a-balakrishnan-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "6785b0d7b1016d9a44a0394aabfeb861cd6a9ec38fb1a2d5f4866b163756416e",
+        "file_size": 485761,
+        "page_count": 40,
+        "text_characters": 76194
+      },
+      {
+        "record_number": 90,
+        "local_filename": "2022-09-06_2022-insc-927_state-tax-officer-1-v-rainbow-papers-limited.pdf",
+        "document_type": "judgment",
+        "sha256": "b96c7709343ac83c97ed16f0a0a59b4314b9de8680bec94b5d37d114efbbcf72",
+        "file_size": 385411,
+        "page_count": 33,
+        "text_characters": 56547
+      },
+      {
+        "record_number": 91,
+        "local_filename": "2023-07-17_2023-insc-625_paschimanchal-vidyut-vitran-nigam-ltd-v-raman-ispat-pri.pdf",
+        "document_type": "judgment",
+        "sha256": "c0ac3828c82eb889c1825703d909bf82b56b47df7a498fa4c6f99e8e6c94954d",
+        "file_size": 484875,
+        "page_count": 47,
+        "text_characters": 91677
+      },
+      {
+        "record_number": 92,
+        "local_filename": "2023-09-11_2023-insc-816_m-s-rps-infrastructure-ltd-v-mukul-kumar-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "aa1c814bfad1455d8856815c823364f0055e311e41d4106da0611c3b4d585611",
+        "file_size": 183170,
+        "page_count": 9,
+        "text_characters": 15625
+      },
+      {
+        "record_number": 93,
+        "local_filename": "2024-10-23_2024-insc-811_glas-trust-company-llc-v-byju-raveendran-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "dedda1a2159b0d55ad6951128a54ff5dc036ba507c765afb8aa06e0202b8d403",
+        "file_size": 342118,
+        "page_count": 53,
+        "text_characters": 96964
+      },
+      {
+        "record_number": 94,
+        "local_filename": "2023-11-09_2023-insc-1018_dilip-b-jiwrajka-v-union-of-india-ors.pdf",
+        "document_type": "judgment",
+        "sha256": "45368d00c9a6c265d00fbf8c79e7ad206c1496ba111d49a5039d470224a22814",
+        "file_size": 708720,
+        "page_count": 51,
+        "text_characters": 99203
+      },
+      {
+        "record_number": 95,
+        "local_filename": "2025-01-29_2025-insc-124_independent-sugar-corporation-ltd-v-girish-sriram-junej.pdf",
+        "document_type": "judgment",
+        "sha256": "101ffba309f2a3022a7a6d02339cb9b7409bede7744a3bb387f057a027b9c688",
+        "file_size": 728784,
+        "page_count": 127,
+        "text_characters": 240936
+      },
+      {
+        "record_number": 96,
+        "local_filename": "2018-02-07_2018-insc-113_kandla-export-corporation-anr-v-m-s-oci-corporation-anr.pdf",
+        "document_type": "judgment",
+        "sha256": "7623211f3010d060ef1dd5b27c812105c719855a2ed4cf7cf7b7094241e2cdbd",
+        "file_size": 492836,
+        "page_count": 22,
+        "text_characters": 41688
+      },
+      {
+        "record_number": 97,
+        "local_filename": "2022-08-17_2022-insc-841_m-s-patil-automation-private-limited-and-ors-v-rakheja.pdf",
+        "document_type": "judgment",
+        "sha256": "5298742433956e0ab13b1992e22c276e3a5f1aa836fa9f1bde1f6efd55f31d53",
+        "file_size": 629859,
+        "page_count": 61,
+        "text_characters": 119634
+      },
+      {
+        "record_number": 98,
+        "local_filename": "2023-10-03_2023-insc-867_aditya-khaitan-ors-v-il-and-fs-financial-services-limit.pdf",
+        "document_type": "judgment",
+        "sha256": "50b91154667fc4bef9cc9264abc57c1bbdad1539eb90a843d882191b738efe8a",
+        "file_size": 249846,
+        "page_count": 12,
+        "text_characters": 19741
+      },
+      {
+        "record_number": 99,
+        "local_filename": "2022-10-19_2022-insc-1119_jaycee-housing-pvt-ltd-ors-v-registrar-general-orissa-h.pdf",
+        "document_type": "judgment",
+        "sha256": "34d0d2283da9d944991f92bf530a2c6d5c43faa4b713c24ed7f625027cbbbe31",
+        "file_size": 306553,
+        "page_count": 17,
+        "text_characters": 33519
+      },
+      {
+        "record_number": 100,
+        "local_filename": "2017-10-05_2017-insc-1008_nabha-power-limited-npl-v-punjab-state-power-corporatio.pdf",
+        "document_type": "judgment",
+        "sha256": "8b129fe3af5cf5dfdd531fb3b73c6e8f49f8cfed322676aea88c85019824d6fe",
+        "file_size": 1741398,
+        "page_count": 46,
+        "text_characters": 87159
       }
     ],
     "duplicates": [],

@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -39,11 +41,39 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--collection", default=None)
     parser.add_argument("--very-short-characters", type=int, default=20)
     parser.add_argument(
+        "--acquisition-audit",
+        type=Path,
+        default=Path("data/manifests/judgments_pilot_audit.json"),
+    )
+    parser.add_argument(
+        "--extraction-audit",
+        type=Path,
+        default=Path("data/manifests/judgments_pilot_extraction_audit.json"),
+    )
+    parser.add_argument(
         "--skip-qdrant",
         action="store_true",
         help="Write relational quality metrics without vector coverage",
     )
     return parser
+
+
+def _audit_counts(path: Path, *, label: str) -> dict[str, int]:
+    """Read one tracked pipeline audit and validate its aggregate counters."""
+
+    try:
+        value: Any = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"could not read {label} audit {path}: {error}") from error
+    counts = value.get("counts") if isinstance(value, Mapping) else None
+    if not isinstance(counts, Mapping):
+        raise ValueError(f"{label} audit {path} has no counts object")
+    if any(
+        isinstance(item, bool) or not isinstance(item, int) or item < 0
+        for item in counts.values()
+    ):
+        raise ValueError(f"{label} audit {path} contains invalid counters")
+    return {str(key): int(item) for key, item in counts.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,6 +88,17 @@ def main(argv: list[str] | None = None) -> int:
             session, very_short_characters=args.very_short_characters
         )
         postgres_uids = paragraph_uids(session)
+
+    audit["pipeline"] = {
+        "acquisition": _audit_counts(
+            args.acquisition_audit, label="acquisition"
+        ),
+        "extraction": _audit_counts(args.extraction_audit, label="extraction"),
+        "ingestion": {
+            "successfully_ingested_cases": audit["counts"]["cases"],
+            "stored_paragraphs": audit["counts"]["paragraphs"],
+        },
+    }
 
     if not args.skip_qdrant:
         paragraph_index = QdrantParagraphIndex(
