@@ -358,8 +358,27 @@ python scripts/test_search.py "insolvency admission" --year 2022 --top-k 5
 case-number matching uses Unicode NFKC normalization, case-folding, and collapsed
 whitespace while preserving canonical metadata for display. Filters constrain
 the eligible BM25 and native Qdrant candidate sets before RRF; they do not boost,
-normalize, or otherwise modify relevance scores. Cross-encoder reranking is not
-implemented yet.
+normalize, or otherwise modify relevance scores.
+
+Cross-encoder reranking takes the first 50 hybrid RRF candidates, scores each
+unchanged `(query, paragraph text)` pair in batches with
+`cross-encoder/ms-marco-MiniLM-L6-v2`, and returns the best 10 by native model
+score:
+
+```powershell
+python scripts/test_rerank.py "commercial wisdom of committee of creditors" `
+  --candidate-k 50 --top-k 10
+```
+
+The model loads lazily on the first reranked search and is reused by subsequent
+searches on the same reranker. Configure the candidate count, final count, model,
+and CPU-friendly batch size with `RERANKER_CANDIDATE_K`, `RERANKER_TOP_K`,
+`RERANKER_MODEL`, and `RERANKER_BATCH_SIZE`, or the corresponding CLI flags.
+`--court`, `--year`, and `--case-number` reuse the existing pre-retrieval filters;
+only eligible hybrid candidates reach the cross-encoder. Output preserves native
+BM25/dense provenance, RRF score and hybrid rank alongside the cross-encoder
+score and final reranked rank. This is a retrieval sanity layer only; formal
+retrieval evaluation has not started.
 
 ## Tests
 
@@ -392,6 +411,9 @@ an embedding download.
 Metadata-filter tests cover deterministic normalization, AND semantics, full-set
 BM25 eligibility, native Qdrant filter forwarding, hybrid propagation, empty
 matches, and unfiltered ranking regressions.
+Cross-encoder tests use fakes only and cover candidate batching, native-score
+ordering, provenance, deterministic ties, limits, filters, duplicate safety,
+empty retrieval, lazy loading, and model reuse without downloading model files.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

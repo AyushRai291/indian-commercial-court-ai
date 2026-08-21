@@ -12,6 +12,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 
+DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L6-v2"
+DEFAULT_RERANKER_BATCH_SIZE = 16
+DEFAULT_RERANKER_CANDIDATE_K = 50
+DEFAULT_RERANKER_TOP_K = 10
+
+
 def _positive_int(name: str, default: int) -> int:
     raw_value = os.getenv(name)
     if raw_value is None:
@@ -40,6 +46,10 @@ class Settings:
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimension: int = 384
     embedding_batch_size: int = 64
+    reranker_model: str = DEFAULT_RERANKER_MODEL
+    reranker_batch_size: int = DEFAULT_RERANKER_BATCH_SIZE
+    reranker_candidate_k: int = DEFAULT_RERANKER_CANDIDATE_K
+    reranker_top_k: int = DEFAULT_RERANKER_TOP_K
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -61,6 +71,19 @@ class Settings:
             ),
             embedding_dimension=_positive_int("EMBEDDING_DIMENSION", 384),
             embedding_batch_size=_positive_int("EMBEDDING_BATCH_SIZE", 64),
+            reranker_model=os.getenv("RERANKER_MODEL", DEFAULT_RERANKER_MODEL),
+            reranker_batch_size=_positive_int(
+                "RERANKER_BATCH_SIZE",
+                DEFAULT_RERANKER_BATCH_SIZE,
+            ),
+            reranker_candidate_k=_positive_int(
+                "RERANKER_CANDIDATE_K",
+                DEFAULT_RERANKER_CANDIDATE_K,
+            ),
+            reranker_top_k=_positive_int(
+                "RERANKER_TOP_K",
+                DEFAULT_RERANKER_TOP_K,
+            ),
         )
 
 

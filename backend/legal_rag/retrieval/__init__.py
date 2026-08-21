@@ -24,13 +24,27 @@ from legal_rag.retrieval.hybrid import (
     RankedParagraphRetriever,
     reciprocal_rank_fusion,
 )
-from legal_rag.retrieval.results import HybridSearchResult, ParagraphSearchResult
+from legal_rag.retrieval.rerank import (
+    CrossEncoderBatchResult,
+    CrossEncoderReranker,
+    CrossEncoderScorer,
+    RerankSearchDiagnostics,
+    SentenceTransformerCrossEncoderScorer,
+)
+from legal_rag.retrieval.results import (
+    HybridSearchResult,
+    ParagraphSearchResult,
+    RerankedSearchResult,
+)
 
 __all__ = [
     "BM25ParagraphRetriever",
     "DEFAULT_CANDIDATE_DEPTH",
     "DEFAULT_RRF_K",
     "DenseParagraphRetriever",
+    "CrossEncoderBatchResult",
+    "CrossEncoderReranker",
+    "CrossEncoderScorer",
     "HybridParagraphRetriever",
     "HybridSearchDiagnostics",
     "HybridSearchResult",
@@ -38,6 +52,9 @@ __all__ = [
     "ParagraphSearchResult",
     "RankedParagraphRetriever",
     "RetrievalFilters",
+    "RerankSearchDiagnostics",
+    "RerankedSearchResult",
+    "SentenceTransformerCrossEncoderScorer",
     "build_qdrant_filter",
     "build_retrieval_filters",
     "normalize_metadata_value",

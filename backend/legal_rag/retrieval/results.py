@@ -38,3 +38,17 @@ class HybridSearchResult(ParagraphSearchResult):
         """Expose the inherited score explicitly as the final RRF score."""
 
         return self.score
+
+
+@dataclass(frozen=True, slots=True)
+class RerankedSearchResult(HybridSearchResult):
+    """A cross-encoder result retaining its complete hybrid provenance."""
+
+    cross_encoder_score: float
+    reranked_rank: int
+
+    @property
+    def hybrid_rank(self) -> int:
+        """Expose the inherited rank explicitly as the pre-reranking rank."""
+
+        return self.rank
