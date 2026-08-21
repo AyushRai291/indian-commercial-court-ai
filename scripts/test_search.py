@@ -16,6 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from legal_rag.config import get_settings  # noqa: E402
 from legal_rag.embeddings import SentenceTransformerEmbeddingProvider  # noqa: E402
+from legal_rag.retrieval import search_dense  # noqa: E402
 from legal_rag.vector import QdrantParagraphIndex  # noqa: E402
 
 
@@ -76,28 +77,32 @@ def search(query: str, *, top_k: int, collection: str | None, model: str | None)
         collection_name=collection or settings.qdrant_collection,
     )
     paragraph_index.validate_collection(provider.dimension)
-    results = paragraph_index.search(provider.embed_query(query), limit=top_k)
+    results = search_dense(
+        paragraph_index,
+        provider.embed_query(query),
+        top_k=top_k,
+    )
 
     if not results:
         print("No matching paragraphs found.")
         return 0
 
-    for rank, result in enumerate(results, start=1):
-        payload = result.payload
-        year = payload.get("year") if payload.get("year") is not None else "unknown year"
-        paragraph_number = payload.get("paragraph_number")
-        paragraph_label = (
-            f"paragraph {paragraph_number}"
-            if paragraph_number is not None
-            else "unnumbered paragraph"
-        )
-        print(f"{rank}. score={result.score:.4f}")
+    for result in results:
+        judgment_date = result.judgment_date or "unknown date"
+        case_number = result.case_number or "unknown case number"
+        court = result.court or "Unknown court"
+        page = result.page_number if result.page_number is not None else "unknown"
+        print(f"{result.rank}. score={result.score:.4f}")
         print(
-            f"   {payload.get('title') or 'Untitled case'} | "
-            f"{payload.get('court') or 'Unknown court'} | {year} | {paragraph_label}"
+            f"   {result.title or 'Untitled case'} | {case_number} | "
+            f"{court} | {judgment_date}"
         )
-        print(f"   {payload.get('text', '')}")
-        if rank != len(results):
+        print(
+            f"   paragraph={result.paragraph_number} page={page} "
+            f"uid={result.paragraph_uid}"
+        )
+        print(f"   {result.text}")
+        if result.rank != len(results):
             print()
     return len(results)
 

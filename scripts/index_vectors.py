@@ -74,9 +74,15 @@ def paragraph_payload(paragraph: Paragraph, case: Case) -> dict[str, Any]:
         "case_id": case.id,
         "paragraph_uid": paragraph.paragraph_uid,
         "title": case.title,
+        "case_number": case.case_number,
         "court": case.court,
+        "judgment_date": (
+            judgment_date.isoformat() if judgment_date is not None else None
+        ),
+        "source_url": case.source_url,
         "year": judgment_date.year if judgment_date is not None else None,
         "paragraph_number": paragraph.paragraph_number,
+        "page_number": paragraph.page_number,
         "text": paragraph.text,
     }
 

@@ -6,7 +6,7 @@ deduplicates and stores cases and paragraphs in PostgreSQL, and indexes paragrap
 embeddings in Qdrant.
 
 The current scope deliberately excludes a frontend, LLM answer generation,
-LangChain, OpenSearch/BM25, OCR, and authentication.
+LangChain, OpenSearch, hybrid fusion/RRF, OCR, and authentication.
 
 ## Repository layout
 
@@ -22,6 +22,7 @@ backend/legal_rag/
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
+  retrieval/                Shared search results and PostgreSQL-backed BM25
   vector/                   Qdrant paragraph index adapter
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
@@ -31,6 +32,7 @@ scripts/
   ingest_corpus.py          Resumable JSONL ingestion
   index_vectors.py          PostgreSQL-to-Qdrant paragraph indexing
   test_search.py            Semantic-search command line tool
+  test_bm25.py              BM25 lexical-search command line tool
 tests/                       Corpus and database unit tests
 docker-compose.yml          PostgreSQL and Qdrant services
 migrations/                 Alembic environment and ordered schema revisions
@@ -283,7 +285,8 @@ The default embedding model is downloaded by Sentence Transformers on first use.
 Every Qdrant point stores exactly this payload:
 
 ```text
-case_id, paragraph_uid, title, court, year, paragraph_number, text
+case_id, paragraph_uid, title, case_number, court, judgment_date, source_url,
+year, paragraph_number, page_number, text
 ```
 
 Rerunning the indexer is idempotent because the deterministic UUIDv5
@@ -296,7 +299,7 @@ when this flag is supplied. If `EMBEDDING_MODEL` is changed, set its matching
 `EMBEDDING_DIMENSION` and use a new `QDRANT_COLLECTION`; an incompatible existing
 collection is rejected instead of overwritten.
 
-## Search
+## Independent dense and BM25 search
 
 Print the top five semantically similar legal paragraphs:
 
@@ -307,6 +310,24 @@ python scripts/test_search.py "breach of an arbitration agreement" --top-k 5
 Use `--model` or `--collection` to override those settings for one run.
 Search requires an existing compatible collection and will direct you to run the
 indexer instead of silently creating an empty one.
+
+Build an in-memory BM25 index from the authoritative PostgreSQL paragraphs and
+run a lexical query with:
+
+```powershell
+python scripts/test_bm25.py "Section 7 IBC admission discretion" --top-k 5
+```
+
+BM25 uses deterministic NFKC normalization, Unicode-aware case-folded word and
+number tokens, and standard Okapi scoring with term-frequency saturation,
+document-frequency IDF, and document-length normalization. It does not mutate
+stored paragraph text. The CLI reports index-build and query timing on each run.
+
+Dense and BM25 retrieval expose the same typed paragraph result fields, including
+durable `paragraph_uid`, rank, native retrieval score, case metadata, paragraph
+and page numbers, and source URL. They remain independent retrieval modes: BM25
+scores are not converted to probabilities, and hybrid fusion/RRF is not
+implemented yet.
 
 ## Tests
 
@@ -329,6 +350,9 @@ boundaries, atomic resume, metadata failures, and rejection of corrupt,
 encrypted, and non-text PDFs; tests never download the real pilot files.
 Corpus-audit tests use a temporary SQLite database and fake Qdrant pagination;
 they do not require Docker or download an embedding model.
+BM25 tests use only synthetic in-memory paragraph fixtures and cover lexical
+relevance, document frequency, term-frequency saturation, shared dense/lexical
+result fields, validation, deduplication, and deterministic tie ordering.
 SQLite is used for isolated database tests; the production connection remains
 PostgreSQL.
 

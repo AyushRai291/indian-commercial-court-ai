@@ -118,9 +118,13 @@ def test_paragraph_payload_has_exact_required_keys() -> None:
         "paragraph_uid": paragraph_uid,
         "case_id": 11,
         "title": "Acme Ltd. v. Zenith Ltd.",
+        "case_number": "CS(COMM) 1/2025",
         "court": "Delhi High Court",
+        "judgment_date": "2025-02-03",
+        "source_url": None,
         "year": 2025,
         "paragraph_number": 7,
+        "page_number": 2,
         "text": "The claim is decreed.",
     }
 
