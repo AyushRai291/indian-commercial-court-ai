@@ -6,7 +6,7 @@ deduplicates and stores cases and paragraphs in PostgreSQL, and indexes paragrap
 embeddings in Qdrant.
 
 The current scope deliberately excludes a frontend, LLM answer generation,
-LangChain, OpenSearch, reranking, OCR, and authentication.
+LangChain, OpenSearch, OCR, and authentication.
 
 ## Repository layout
 
@@ -22,7 +22,8 @@ backend/legal_rag/
   corpus/                   Canonical schema, normalization, hashing, extraction
   services/ingestion.py     Transactional case/paragraph insertion
   embeddings/               Embedding interface and Sentence Transformers adapter
-  retrieval/                Dense, BM25, and rank-fused paragraph retrieval
+  retrieval/                Dense, BM25, rank-fused, and reranked retrieval
+  evaluation/               Gold validation and paragraph-level retrieval metrics
   vector/                   Qdrant paragraph index adapter
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
@@ -31,6 +32,7 @@ scripts/
   migrate_database.py       Validated legacy-to-Alembic upgrade command
   ingest_corpus.py          Resumable JSONL ingestion
   index_vectors.py          PostgreSQL-to-Qdrant paragraph indexing
+  evaluate_retrieval.py     Frozen four-system retrieval benchmark
   test_search.py            Semantic-search command line tool
   test_bm25.py              BM25 lexical-search command line tool
 tests/                       Corpus and database unit tests
@@ -397,8 +399,38 @@ metadata/provenance with:
 python scripts/validate_gold_queries.py data/evaluation/gold_queries.jsonl
 ```
 
-This command prints dataset-characterization statistics only. Recall, MRR,
-nDCG, and comparisons among retrieval methods are not implemented yet.
+This command prints dataset-characterization statistics only and does not run
+retrieval.
+
+## Retrieval evaluation
+
+Run the frozen 40-query pilot benchmark over the complete corpus with no metadata
+filters:
+
+```powershell
+python scripts/evaluate_retrieval.py
+python scripts/evaluate_retrieval.py --validate-only
+```
+
+The runner builds one BM25 index and reuses one embedding model, Qdrant client,
+and cross-encoder across all queries. It measures the existing, unchanged BM25
+top 10; dense top 10; RRF hybrid with 50 candidates per branch, `k=60`, and final
+top 10; and cross-encoder reranking of 50 hybrid candidates to a final top 10.
+
+Recall@5 and Recall@10 use every positive gold grade as binary relevance and are
+macro-averaged. MRR is the macro reciprocal rank of the first exact gold
+`paragraph_uid` in the returned top 10. nDCG@10 uses the gold grades with gain
+`2^relevance - 1`, `log2(rank + 1)` discount, and macro averaging. Same-case or
+similar-text results receive no credit without an exact paragraph UID match.
+
+Tracked outputs are written to:
+
+- `data/evaluation/results/retrieval_metrics.json`
+- `data/evaluation/results/retrieval_per_query.jsonl`
+- `data/evaluation/results/retrieval_evaluation_report.md`
+
+These are measurements on the frozen pilot gold set. Retrieval tuning and error
+analysis have not yet been performed.
 
 ## Tests
 
@@ -434,6 +466,9 @@ matches, and unfiltered ranking regressions.
 Cross-encoder tests use fakes only and cover candidate batching, native-score
 ordering, provenance, deterministic ties, limits, filters, duplicate safety,
 empty retrieval, lazy loading, and model reuse without downloading model files.
+Evaluation tests use synthetic rankings only and verify exact-UID Recall@5/10,
+top-10 MRR, graded nDCG@10, duplicate safety, macro averaging, and artifact
+completeness/recomputation without calling PostgreSQL, Qdrant, or either model.
 Gold-query validator tests use synthetic SQLite fixtures and cover duplicate
 identities, dangling UIDs, metadata mismatch, grading rules, duplicate labels,
 empty queries, statistics, and review rendering without running retrieval.
