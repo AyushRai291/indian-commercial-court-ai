@@ -420,7 +420,7 @@ def test_hybrid_passes_same_filters_to_both_candidate_retrievers_before_rrf() ->
         )
         for result in results
     )
-    assert results[0].rrf_score == pytest.approx(2 / 61)
+    assert results[0].rrf_score == pytest.approx(2 / 11)
     assert results[0].bm25_score == 9.0
     assert results[0].dense_score == 0.9
     assert diagnostics.bm25_candidates == 1

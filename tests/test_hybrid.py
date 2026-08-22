@@ -99,7 +99,7 @@ def test_duplicate_within_a_list_contributes_only_once_at_first_position() -> No
     )
 
     assert len(results) == 1
-    assert results[0].rrf_score == pytest.approx(1 / 61)
+    assert results[0].rrf_score == pytest.approx(1 / 11)
     assert results[0].bm25_rank == 1
     assert results[0].bm25_score == 9.0
     assert results[0].text == "Paragraph 1"

@@ -36,8 +36,6 @@ from legal_rag.evaluation import (  # noqa: E402
 )
 from legal_rag.models import Paragraph  # noqa: E402
 from legal_rag.retrieval import (  # noqa: E402
-    DEFAULT_CANDIDATE_DEPTH,
-    DEFAULT_RRF_K,
     BM25ParagraphRetriever,
     CrossEncoderReranker,
     DenseParagraphRetriever,
@@ -53,6 +51,8 @@ EXPECTED_PARAGRAPHS = 18_822
 FINAL_TOP_K = 10
 BM25_K1 = 1.5
 BM25_B = 0.75
+DAY11_CANDIDATE_DEPTH = 50
+DAY11_RRF_K = 60
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -175,9 +175,9 @@ def run_benchmark(args: argparse.Namespace) -> tuple[Path, Path, Path]:
     hybrid = HybridParagraphRetriever(
         bm25,
         dense,
-        bm25_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-        dense_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-        rrf_k=DEFAULT_RRF_K,
+        bm25_candidate_depth=DAY11_CANDIDATE_DEPTH,
+        dense_candidate_depth=DAY11_CANDIDATE_DEPTH,
+        rrf_k=DAY11_RRF_K,
     )
     scorer = SentenceTransformerCrossEncoderScorer(settings.reranker_model)
     reranker = CrossEncoderReranker(
@@ -200,9 +200,9 @@ def run_benchmark(args: argparse.Namespace) -> tuple[Path, Path, Path]:
         results, diagnostics = hybrid.search_with_diagnostics(
             query,
             top_k=FINAL_TOP_K,
-            bm25_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-            dense_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-            rrf_k=DEFAULT_RRF_K,
+            bm25_candidate_depth=DAY11_CANDIDATE_DEPTH,
+            dense_candidate_depth=DAY11_CANDIDATE_DEPTH,
+            rrf_k=DAY11_RRF_K,
         )
         return results, asdict(diagnostics)
 
@@ -211,9 +211,9 @@ def run_benchmark(args: argparse.Namespace) -> tuple[Path, Path, Path]:
             query,
             top_k=FINAL_TOP_K,
             candidate_k=50,
-            bm25_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-            dense_candidate_depth=DEFAULT_CANDIDATE_DEPTH,
-            rrf_k=DEFAULT_RRF_K,
+            bm25_candidate_depth=DAY11_CANDIDATE_DEPTH,
+            dense_candidate_depth=DAY11_CANDIDATE_DEPTH,
+            rrf_k=DAY11_RRF_K,
             batch_size=settings.reranker_batch_size,
         )
         return results, asdict(diagnostics)
@@ -257,9 +257,9 @@ def run_benchmark(args: argparse.Namespace) -> tuple[Path, Path, Path]:
             "top_k": FINAL_TOP_K,
         },
         "hybrid_rrf": {
-            "bm25_candidate_depth": DEFAULT_CANDIDATE_DEPTH,
-            "dense_candidate_depth": DEFAULT_CANDIDATE_DEPTH,
-            "rrf_k": DEFAULT_RRF_K,
+            "bm25_candidate_depth": DAY11_CANDIDATE_DEPTH,
+            "dense_candidate_depth": DAY11_CANDIDATE_DEPTH,
+            "rrf_k": DAY11_RRF_K,
             "top_k": FINAL_TOP_K,
         },
         "hybrid_reranker": {

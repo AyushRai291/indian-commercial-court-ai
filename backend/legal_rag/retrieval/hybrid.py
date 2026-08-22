@@ -12,7 +12,7 @@ from legal_rag.retrieval.results import HybridSearchResult, ParagraphSearchResul
 
 
 DEFAULT_CANDIDATE_DEPTH = 50
-DEFAULT_RRF_K = 60
+DEFAULT_RRF_K = 10
 
 
 class RankedParagraphRetriever(Protocol):

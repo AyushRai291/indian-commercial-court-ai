@@ -334,8 +334,8 @@ durable `paragraph_uid`, rank, native retrieval score, case metadata, paragraph
 and page numbers, and source URL. Both remain independently usable.
 
 Hybrid search retrieves up to 50 candidates independently from each retriever
-and combines their rank positions with Reciprocal Rank Fusion (RRF), using the
-conventional default `k=60`:
+and combines their rank positions with Reciprocal Rank Fusion (RRF). The measured
+pilot default is `k=10`:
 
 ```powershell
 python scripts/test_hybrid.py "commercial wisdom of committee of creditors" --top-k 10
@@ -362,14 +362,14 @@ whitespace while preserving canonical metadata for display. Filters constrain
 the eligible BM25 and native Qdrant candidate sets before RRF; they do not boost,
 normalize, or otherwise modify relevance scores.
 
-Cross-encoder reranking takes the first 50 hybrid RRF candidates, scores each
+Cross-encoder reranking takes the first 30 hybrid RRF candidates, scores each
 unchanged `(query, paragraph text)` pair in batches with
 `cross-encoder/ms-marco-MiniLM-L6-v2`, and returns the best 10 by native model
 score:
 
 ```powershell
 python scripts/test_rerank.py "commercial wisdom of committee of creditors" `
-  --candidate-k 50 --top-k 10
+  --candidate-k 30 --top-k 10
 ```
 
 The model loads lazily on the first reranked search and is reused by subsequent
@@ -379,8 +379,8 @@ and CPU-friendly batch size with `RERANKER_CANDIDATE_K`, `RERANKER_TOP_K`,
 `--court`, `--year`, and `--case-number` reuse the existing pre-retrieval filters;
 only eligible hybrid candidates reach the cross-encoder. Output preserves native
 BM25/dense provenance, RRF score and hybrid rank alongside the cross-encoder
-score and final reranked rank. This remains a retrieval sanity layer; formal
-retrieval metrics are not implemented.
+score and final reranked rank. Formal pilot metrics and tuning evidence are
+documented below.
 
 ## Gold retrieval queries
 
@@ -412,8 +412,8 @@ python scripts/evaluate_retrieval.py
 python scripts/evaluate_retrieval.py --validate-only
 ```
 
-The runner builds one BM25 index and reuses one embedding model, Qdrant client,
-and cross-encoder across all queries. It measures the existing, unchanged BM25
+The Day 11 runner builds one BM25 index and reuses one embedding model, Qdrant
+client, and cross-encoder across all queries. It preserves the historical BM25
 top 10; dense top 10; RRF hybrid with 50 candidates per branch, `k=60`, and final
 top 10; and cross-encoder reranking of 50 hybrid candidates to a final top 10.
 
@@ -429,8 +429,35 @@ Tracked outputs are written to:
 - `data/evaluation/results/retrieval_per_query.jsonl`
 - `data/evaluation/results/retrieval_evaluation_report.md`
 
-These are measurements on the frozen pilot gold set. Retrieval tuning and error
-analysis have not yet been performed.
+These are the immutable pre-tuning measurements on the frozen pilot gold set.
+
+## Retrieval tuning and error analysis
+
+Run or validate the fixed Day 12 ablation grid with:
+
+```powershell
+python scripts/tune_retrieval.py
+python scripts/tune_retrieval.py --validate-only
+```
+
+The runner caches native BM25/dense top-50 rankings once, tests RRF
+`k={10,20,40,60,80,100}`, controlled 30/40/50 symmetric and asymmetric native
+depths, and cross-encoder candidate depths 30/40/50. It records every tested
+configuration under `data/evaluation/tuning/`:
+
+- `retrieval_ablation_results.json`
+- `retrieval_error_analysis.json`
+- `retrieval_tuning_report.md`
+
+The measured defaults are 50 BM25 candidates, 50 dense candidates, RRF `k=10`,
+and 30 reranker candidates, with final top 10 unchanged. The tuned reranker
+improved the original reranker from nDCG@10 `0.292882` to `0.297160`, but remained
+below the BM25 baseline `0.303318`; BM25 therefore remains the best pilot system
+on Recall@5, MRR, and nDCG@10. Exact-UID candidate generation and cross-encoder
+ordering both remain measured failure sources. These results cover only 40
+queries and a 100-judgment Supreme-Court-only pilot; no significance claim is
+made, and paragraph splitting was not changed because it would invalidate the
+frozen paragraph-UID labels.
 
 ## Tests
 
@@ -469,6 +496,9 @@ empty retrieval, lazy loading, and model reuse without downloading model files.
 Evaluation tests use synthetic rankings only and verify exact-UID Recall@5/10,
 top-10 MRR, graded nDCG@10, duplicate safety, macro averaging, and artifact
 completeness/recomputation without calling PostgreSQL, Qdrant, or either model.
+Tuning tests cover the fixed experiment grid, candidate recall, category
+aggregation, reranker failure classification, deterministic selection, and
+artifact validation without running real models.
 Gold-query validator tests use synthetic SQLite fixtures and cover duplicate
 identities, dangling UIDs, metadata mismatch, grading rules, duplicate labels,
 empty queries, statistics, and review rendering without running retrieval.
