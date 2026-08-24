@@ -1,4 +1,4 @@
-"""Explicit request and response contracts for paragraph search."""
+"""Explicit request and response contracts for search and grounded answers."""
 
 from __future__ import annotations
 
@@ -58,14 +58,13 @@ class SearchFilters(BaseModel):
         )
 
 
-class SearchRequest(BaseModel):
-    """Validated legal paragraph search request."""
+class RetrievalRequest(BaseModel):
+    """Shared validated query, result count, and metadata filters."""
 
     model_config = ConfigDict(extra="forbid")
 
     query: str
     top_k: StrictTopK = 10
-    retrieval_mode: RetrievalMode = RetrievalMode.RERANKED
     filters: SearchFilters = Field(default_factory=SearchFilters)
 
     @field_validator("query")
@@ -77,6 +76,16 @@ class SearchRequest(BaseModel):
         if not tokenize_legal_text(stripped):
             raise ValueError("query must contain at least one lexical token")
         return stripped
+
+
+class SearchRequest(RetrievalRequest):
+    """Validated legal paragraph search request."""
+
+    retrieval_mode: RetrievalMode = RetrievalMode.RERANKED
+
+
+class AnswerRequest(RetrievalRequest):
+    """Validated grounded-answer request over server-retrieved evidence."""
 
 
 class SearchResult(BaseModel):
@@ -116,6 +125,46 @@ class SearchResponse(BaseModel):
     result_count: int
     latency_ms: float
     results: list[SearchResult]
+
+
+class AnswerEvidence(BaseModel):
+    """One request-local evidence item with complete retrieval provenance."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_id: str
+    paragraph_uid: str
+    text: str
+    case_id: int
+    case_name: str
+    case_number: str | None
+    court: str | None
+    judgment_date: date | None
+    source_url: str | None
+    paragraph_number: int
+    page_number: int | None
+    bm25_rank: int | None = None
+    bm25_score: float | None = None
+    dense_rank: int | None = None
+    dense_score: float | None = None
+    rrf_score: float | None = None
+    hybrid_rank: int | None = None
+    cross_encoder_score: float | None = None
+    reranked_rank: int
+
+
+class AnswerResponse(BaseModel):
+    """Grounded answer, cited evidence, and stage-level latency."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str
+    answer: str
+    used_evidence_ids: list[str]
+    evidence: list[AnswerEvidence]
+    retrieval_latency_ms: float
+    generation_latency_ms: float
+    total_latency_ms: float
 
 
 class HealthResponse(BaseModel):

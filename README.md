@@ -1,12 +1,13 @@
 # Indian Commercial Court RAG - Corpus Foundation
 
-This repository contains the corpus and vector-search foundation for an Indian
-Commercial Court legal RAG system. It normalizes heterogeneous judgment records,
-deduplicates and stores cases and paragraphs in PostgreSQL, and indexes paragraph
-embeddings in Qdrant.
+This repository contains the corpus, retrieval, and grounded-generation foundation
+for an Indian Commercial Court legal RAG system. It normalizes heterogeneous
+judgment records, stores cases and paragraphs in PostgreSQL, indexes paragraph
+embeddings in Qdrant, and can generate answers over request-local reranked evidence.
 
-The current scope deliberately excludes a frontend, LLM answer generation,
-LangChain, OpenSearch, OCR, and authentication.
+The Day 14 frontend is a presentation shell driven by clearly labelled static mock
+responses. Live frontend/API integration, claim-level citation verification,
+LangChain, OpenSearch, OCR, and authentication remain out of scope.
 
 ## Repository layout
 
@@ -26,6 +27,8 @@ backend/legal_rag/
   evaluation/               Gold validation and paragraph-level retrieval metrics
   vector/                   Qdrant paragraph index adapter
   api/                      FastAPI schemas, shared retrieval service, and app
+  generation/               Evidence IDs, grounded prompt, provider, and answer service
+frontend/                   React/Vite legal-research presentation shell
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
   extract_judgments.py      Text-native PDF extraction with page boundaries
@@ -92,10 +95,9 @@ example:
 $env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
 ```
 
-## Search API
+## Search and grounded-answer API
 
-Start the retrieval-only API after PostgreSQL and Qdrant are healthy and the
-package is installed:
+Start the API after PostgreSQL and Qdrant are healthy and the package is installed:
 
 ```powershell
 uvicorn legal_rag.api.app:app --reload
@@ -151,6 +153,85 @@ case metadata, source URL, paragraph and page numbers, available native
 BM25/dense ranks and scores, RRF score and hybrid rank, cross-encoder score, and
 final rank. Fields unavailable for the selected retrieval mode are consistently
 `null`; no answer or citation text is generated.
+
+`POST /answer` always invokes the existing reranked search path internally. It
+assigns request-local IDs (`E1`, `E2`, ...) in reranked order, passes only that
+evidence to the configured model, and returns the answer plus the complete
+paragraph provenance needed by the UI. Callers cannot provide evidence or select
+a weaker retrieval mode.
+
+Configure the single OpenAI provider through environment variables; never commit a
+real key:
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+$env:OPENAI_MODEL = "gpt-5-mini"       # optional default
+$env:OPENAI_TIMEOUT_SECONDS = "60"     # optional default
+```
+
+Example request:
+
+```powershell
+$body = @{
+  query = "Can an ineligible arbitrator nominate another person as arbitrator?"
+  top_k = 10
+  filters = @{
+    court = "Supreme Court of India"
+    year = $null
+    case_number = $null
+  }
+} | ConvertTo-Json -Depth 3
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/answer `
+  -ContentType "application/json" -Body $body
+```
+
+The response shape is:
+
+```json
+{
+  "query": "...",
+  "answer": "... [E1] ...",
+  "used_evidence_ids": ["E1"],
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "paragraph_uid": "...",
+      "case_name": "...",
+      "reranked_rank": 1,
+      "page_number": 42,
+      "paragraph_number": 118,
+      "source_url": "...",
+      "text": "..."
+    }
+  ],
+  "retrieval_latency_ms": 0,
+  "generation_latency_ms": 0,
+  "total_latency_ms": 0
+}
+```
+
+The provider uses a structured output contract and the API rejects unknown or
+malformed evidence IDs and mismatches between inline citations and
+`used_evidence_ids`. These are structural integrity checks only: Day 14 does not
+classify claims as supported, partial, or unsupported. With zero retrieved
+evidence, the provider is skipped and a deterministic insufficiency response is
+returned.
+
+## Frontend presentation shell
+
+The desktop-first legal research workspace currently uses API-shaped fixtures in
+`frontend/src/mocks/`; it does not call `/answer` or write demo records to the
+corpus. Run it with:
+
+```powershell
+Set-Location frontend
+npm install
+npm run dev
+```
+
+The shell includes search and filter controls, a grounded-answer view, clickable
+`[E1]` citations, ranked evidence cards, a full-provenance evidence panel, and
+loading, empty, no-result, backend-error, and generation-error states.
 
 ## Database migrations
 
