@@ -1,15 +1,19 @@
-import type { VerificationResponse } from '../types'
+import type { VerificationSummary as VerificationSummaryValue } from '../types'
 
 function claimCountLabel(value: number) {
   return `${value} ${value === 1 ? 'claim' : 'claims'}`
 }
 
-export function VerificationSummary({ verification }: { verification: VerificationResponse }) {
-  const { claims, summary } = verification
-
+export function VerificationSummary({
+  claimCount,
+  summary,
+}: {
+  claimCount: number
+  summary: VerificationSummaryValue
+}) {
   return (
     <div className="verification-summary" aria-label="Citation verification summary">
-      <strong>{claimCountLabel(claims.length)}</strong>
+      <strong>{claimCountLabel(claimCount)}</strong>
       <span aria-hidden="true">/</span>
       <span className="summary-count summary-count--supported">
         {summary.supported} supported

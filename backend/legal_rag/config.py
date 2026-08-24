@@ -8,7 +8,7 @@ while tests can construct :class:`Settings` explicitly.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from math import isfinite
 
@@ -17,8 +17,8 @@ DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L6-v2"
 DEFAULT_RERANKER_BATCH_SIZE = 16
 DEFAULT_RERANKER_CANDIDATE_K = 30
 DEFAULT_RERANKER_TOP_K = 10
-DEFAULT_OPENAI_MODEL = "gpt-5-mini"
-DEFAULT_OPENAI_TIMEOUT_SECONDS = 60.0
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+DEFAULT_GEMINI_TIMEOUT_SECONDS = 60.0
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -68,10 +68,10 @@ class Settings:
     reranker_batch_size: int = DEFAULT_RERANKER_BATCH_SIZE
     reranker_candidate_k: int = DEFAULT_RERANKER_CANDIDATE_K
     reranker_top_k: int = DEFAULT_RERANKER_TOP_K
-    openai_api_key: str | None = None
-    openai_model: str = DEFAULT_OPENAI_MODEL
-    openai_verifier_model: str | None = None
-    openai_timeout_seconds: float = DEFAULT_OPENAI_TIMEOUT_SECONDS
+    gemini_api_key: str | None = field(default=None, repr=False)
+    gemini_model: str = DEFAULT_GEMINI_MODEL
+    gemini_verifier_model: str | None = None
+    gemini_timeout_seconds: float = DEFAULT_GEMINI_TIMEOUT_SECONDS
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -106,14 +106,14 @@ class Settings:
                 "RERANKER_TOP_K",
                 DEFAULT_RERANKER_TOP_K,
             ),
-            openai_api_key=os.getenv("OPENAI_API_KEY") or None,
-            openai_model=os.getenv("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL,
-            openai_verifier_model=(
-                os.getenv("OPENAI_VERIFIER_MODEL") or None
+            gemini_api_key=(os.getenv("GEMINI_API_KEY") or "").strip() or None,
+            gemini_model=os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL,
+            gemini_verifier_model=(
+                os.getenv("GEMINI_VERIFIER_MODEL") or None
             ),
-            openai_timeout_seconds=_positive_float(
-                "OPENAI_TIMEOUT_SECONDS",
-                DEFAULT_OPENAI_TIMEOUT_SECONDS,
+            gemini_timeout_seconds=_positive_float(
+                "GEMINI_TIMEOUT_SECONDS",
+                DEFAULT_GEMINI_TIMEOUT_SECONDS,
             ),
         )
 

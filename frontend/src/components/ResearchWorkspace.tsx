@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import {
-  arbitratorResearch,
-  commercialWisdomResearch,
-  mockResearchResults,
-} from '../mocks/answerResponses'
-import type { SearchFilters, VerifiedResearchFixture, WorkspaceView } from '../types'
+import { ResearchApiError, runResearch } from '../api/research'
+import type {
+  ResearchRequestFilters,
+  ResearchResponse,
+  SearchFilters,
+  WorkspaceView,
+} from '../types'
 import { EvidenceList } from './EvidenceList'
 import { EvidencePanel } from './EvidencePanel'
 import { GroundedAnswer } from './GroundedAnswer'
@@ -16,29 +17,44 @@ import { TopBar } from './TopBar'
 import { WorkspaceState } from './WorkspaceState'
 
 const defaultFilters: SearchFilters = {
-  court: 'Supreme Court of India',
+  court: '',
   year: '',
   caseNumber: '',
 }
 
+const demoQuestions = [
+  'Can an ineligible arbitrator nominate another person as arbitrator?',
+  'What is the scope of judicial interference with the commercial wisdom of the committee of creditors?',
+]
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError'
+}
+
 export function ResearchWorkspace() {
-  const [query, setQuery] = useState(arbitratorResearch.answer.query)
+  const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters)
-  const [view, setView] = useState<WorkspaceView>('result')
-  const [activeResult, setActiveResult] = useState<VerifiedResearchFixture>(arbitratorResearch)
-  const [selectedClaimId, setSelectedClaimId] = useState('C1')
-  const [selectedEvidenceId, setSelectedEvidenceId] = useState('E1')
+  const [view, setView] = useState<WorkspaceView>('empty')
+  const [activeResult, setActiveResult] = useState<ResearchResponse | null>(null)
+  const [selectedClaimId, setSelectedClaimId] = useState('')
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [loadingStage, setLoadingStage] = useState(0)
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([])
+  const activeRequest = useRef<AbortController | null>(null)
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  useEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout)
+      activeRequest.current?.abort()
+    },
+    [],
+  )
 
   const selectedEvidence = useMemo(
     () =>
       view === 'result'
-        ? activeResult.answer.evidence.find((item) => item.evidence_id === selectedEvidenceId) ??
-          null
+        ? activeResult?.evidence.find((item) => item.evidence_id === selectedEvidenceId) ?? null
         : null,
     [activeResult, selectedEvidenceId, view],
   )
@@ -46,8 +62,7 @@ export function ResearchWorkspace() {
   const selectedClaim = useMemo(
     () =>
       view === 'result'
-        ? activeResult.verification.claims.find((claim) => claim.claim_id === selectedClaimId) ??
-          null
+        ? activeResult?.claims.find((claim) => claim.claim_id === selectedClaimId) ?? null
         : null,
     [activeResult, selectedClaimId, view],
   )
@@ -59,25 +74,90 @@ export function ResearchWorkspace() {
     timers.current = []
   }
 
-  function showExample(result: VerifiedResearchFixture) {
+  function cancelResearch() {
     clearTimers()
-    const firstClaim = result.verification.claims[0]
-    setQuery(result.answer.query)
-    setActiveResult(result)
-    setSelectedClaimId(firstClaim?.claim_id ?? '')
-    setSelectedEvidenceId(firstClaim?.citation_ids[0] ?? result.answer.evidence[0]?.evidence_id ?? '')
+    activeRequest.current?.abort()
+    activeRequest.current = null
+  }
+
+  function showExample(exampleQuery: string) {
+    cancelResearch()
+    setQuery(exampleQuery)
+    setActiveResult(null)
+    setSelectedClaimId('')
+    setSelectedEvidenceId('')
     setValidationError(null)
-    setView('result')
+    setView('empty')
   }
 
   function startNewResearch() {
-    clearTimers()
+    cancelResearch()
     setQuery('')
     setFilters(defaultFilters)
+    setActiveResult(null)
     setValidationError(null)
     setSelectedClaimId('')
     setSelectedEvidenceId('')
     setView('empty')
+  }
+
+  function startLoadingStages() {
+    setLoadingStage(0)
+    timers.current = [
+      setTimeout(() => setLoadingStage(1), 750),
+      setTimeout(() => setLoadingStage(2), 1_600),
+      setTimeout(() => setLoadingStage(3), 2_600),
+    ]
+  }
+
+  async function performResearch(normalizedQuery: string, requestFilters: ResearchRequestFilters) {
+    cancelResearch()
+    const controller = new AbortController()
+    activeRequest.current = controller
+    setValidationError(null)
+    setActiveResult(null)
+    setSelectedClaimId('')
+    setSelectedEvidenceId('')
+    setView('loading')
+    startLoadingStages()
+
+    try {
+      const response = await runResearch(
+        { query: normalizedQuery, top_k: 10, filters: requestFilters },
+        controller.signal,
+      )
+      if (controller.signal.aborted || activeRequest.current !== controller) return
+
+      clearTimers()
+      if (response.evidence.length === 0) {
+        setActiveResult(response)
+        setView('no-results')
+        return
+      }
+
+      const firstClaim = response.claims[0]
+      setActiveResult(response)
+      setSelectedClaimId(firstClaim?.claim_id ?? '')
+      setSelectedEvidenceId(
+        firstClaim?.citation_ids[0] ?? response.evidence[0]?.evidence_id ?? '',
+      )
+      setView('result')
+    } catch (error) {
+      if (controller.signal.aborted || activeRequest.current !== controller || isAbortError(error)) {
+        return
+      }
+
+      clearTimers()
+      setView(
+        error instanceof ResearchApiError && error.kind === 'generation'
+          ? 'generation-error'
+          : error instanceof ResearchApiError && error.kind === 'verification'
+            ? 'verification-error'
+            : 'backend-error',
+      )
+    } finally {
+      if (activeRequest.current === controller) activeRequest.current = null
+    }
   }
 
   function submitResearch(event: FormEvent<HTMLFormElement>) {
@@ -88,41 +168,22 @@ export function ResearchWorkspace() {
       return
     }
 
-    clearTimers()
-    setValidationError(null)
-    setLoadingStage(0)
-    setView('loading')
+    const normalizedYear = filters.year.trim()
+    if (normalizedYear && !/^\d{4}$/.test(normalizedYear)) {
+      setValidationError('Enter the judgment year as four digits, for example 2019.')
+      return
+    }
 
-    timers.current = [
-      setTimeout(() => setLoadingStage(1), 350),
-      setTimeout(() => setLoadingStage(2), 700),
-      setTimeout(() => setLoadingStage(3), 950),
-      setTimeout(() => {
-        const lowered = normalizedQuery.toLowerCase()
-        const result = lowered.includes('commercial wisdom') || lowered.includes('creditor')
-          ? commercialWisdomResearch
-          : lowered.includes('arbitrator') || lowered.includes('appointment')
-            ? arbitratorResearch
-            : null
+    const requestFilters: ResearchRequestFilters = {}
+    if (filters.court.trim()) requestFilters.court = filters.court.trim()
+    if (normalizedYear) requestFilters.year = Number(normalizedYear)
+    if (filters.caseNumber.trim()) requestFilters.case_number = filters.caseNumber.trim()
 
-        if (!result) {
-          setSelectedClaimId('')
-          setSelectedEvidenceId('')
-          setView('no-results')
-          return
-        }
-
-        const firstClaim = result.verification.claims[0]
-        setActiveResult(result)
-        setSelectedClaimId(firstClaim?.claim_id ?? '')
-        setSelectedEvidenceId(firstClaim?.citation_ids[0] ?? result.answer.evidence[0]?.evidence_id ?? '')
-        setView('result')
-      }, 1250),
-    ]
+    void performResearch(normalizedQuery, requestFilters)
   }
 
   function selectClaim(claimId: string) {
-    const claim = activeResult.verification.claims.find((item) => item.claim_id === claimId)
+    const claim = activeResult?.claims.find((item) => item.claim_id === claimId)
     if (!claim) return
     setSelectedClaimId(claimId)
     setSelectedEvidenceId(claim.citation_ids[0] ?? '')
@@ -134,12 +195,13 @@ export function ResearchWorkspace() {
   }
 
   function selectEvidence(evidenceId: string) {
-    const currentClaim = activeResult.verification.claims.find(
+    if (!activeResult) return
+    const currentClaim = activeResult.claims.find(
       (claim) => claim.claim_id === selectedClaimId,
     )
     const relatedClaim = currentClaim?.citation_ids.includes(evidenceId)
       ? currentClaim
-      : activeResult.verification.claims.find((claim) => claim.citation_ids.includes(evidenceId))
+      : activeResult.claims.find((claim) => claim.citation_ids.includes(evidenceId))
 
     if (relatedClaim) setSelectedClaimId(relatedClaim.claim_id)
     setSelectedEvidenceId(evidenceId)
@@ -149,7 +211,7 @@ export function ResearchWorkspace() {
     <div className="workspace-shell">
       <TopBar />
       <Sidebar
-        examples={mockResearchResults}
+        examples={demoQuestions}
         onNewResearch={startNewResearch}
         onSelectExample={showExample}
       />
@@ -161,31 +223,32 @@ export function ResearchWorkspace() {
             <h1>Ask the judgment corpus</h1>
             <p>Trace every material claim to its citation, exact paragraph, and verification status.</p>
           </div>
-          <span className="mock-label">Static demo data</span>
+          <span className="environment-label">Live research API</span>
         </div>
 
         <SearchBar
           query={query}
           filters={filters}
           validationError={validationError}
+          isLoading={view === 'loading'}
           onQueryChange={setQuery}
           onFiltersChange={setFilters}
           onSubmit={submitResearch}
         />
 
         {view === 'loading' ? <LoadingState activeStage={loadingStage} /> : null}
-        {view === 'result' ? (
+        {view === 'result' && activeResult ? (
           <>
             <GroundedAnswer
-              response={activeResult.answer}
-              verification={activeResult.verification}
+              response={activeResult}
               selectedClaimId={selectedClaimId}
               selectedEvidenceId={selectedEvidenceId}
               onSelectClaim={selectClaim}
-              onSelectEvidence={selectClaimEvidence}
+              onSelectClaimEvidence={selectClaimEvidence}
+              onSelectEvidence={selectEvidence}
             />
             <EvidenceList
-              evidence={activeResult.answer.evidence}
+              evidence={activeResult.evidence}
               selectedEvidenceId={selectedEvidenceId}
               highlightedEvidenceIds={highlightedEvidenceIds}
               onSelectEvidence={selectEvidence}
@@ -197,7 +260,7 @@ export function ResearchWorkspace() {
 
       <EvidencePanel
         evidence={selectedEvidence}
-        claims={activeResult.verification.claims}
+        claims={activeResult?.claims ?? []}
         selectedClaim={selectedClaim}
         onSelectClaim={selectClaim}
       />

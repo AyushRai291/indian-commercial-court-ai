@@ -89,6 +89,10 @@ class AnswerRequest(RetrievalRequest):
     """Validated grounded-answer request over server-retrieved evidence."""
 
 
+class ResearchRequest(RetrievalRequest):
+    """Validated request for the end-to-end legal research workflow."""
+
+
 class SearchResult(BaseModel):
     """One ranked paragraph with canonical metadata and score provenance."""
 
@@ -219,6 +223,74 @@ class VerifyResponse(BaseModel):
     claim_extraction_latency_ms: float
     verification_latency_ms: float
     total_latency_ms: float
+
+
+class ResearchVerificationState(str, Enum):
+    """Whether claim verification completed for the generated answer."""
+
+    COMPLETE = "complete"
+    NOT_RUN = "not_run"
+    UNAVAILABLE = "unavailable"
+
+
+class ResearchLatency(BaseModel):
+    """End-to-end stage latency in milliseconds."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    retrieval_ms: float = Field(ge=0)
+    generation_ms: float = Field(ge=0)
+    verification_ms: float = Field(ge=0)
+    total_ms: float = Field(ge=0)
+
+
+class ResearchResponse(BaseModel):
+    """Grounded answer, evidence, verification state, and stage timing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str
+    answer: str
+    used_evidence_ids: list[str]
+    evidence: list[AnswerEvidence]
+    claims: list[VerificationClaim]
+    verification_summary: VerificationSummary | None
+    verification_state: ResearchVerificationState
+    verification_error: str | None
+    latency: ResearchLatency
+
+    @model_validator(mode="after")
+    def validate_verification_state(self) -> "ResearchResponse":
+        if self.verification_state is ResearchVerificationState.UNAVAILABLE:
+            if self.claims or self.verification_summary is not None:
+                raise ValueError(
+                    "unavailable verification cannot contain results"
+                )
+            if not self.verification_error:
+                raise ValueError(
+                    "unavailable verification requires a safe error"
+                )
+            return self
+
+        if self.verification_summary is None:
+            raise ValueError(
+                "completed or skipped verification requires a summary"
+            )
+        if self.verification_error is not None:
+            raise ValueError(
+                "completed or skipped verification cannot contain an error"
+            )
+        if (
+            self.verification_state is ResearchVerificationState.NOT_RUN
+            and (
+                self.claims
+                or self.verification_summary.supported
+                or self.verification_summary.partial
+                or self.verification_summary.unsupported
+            )
+        ):
+            raise ValueError("not-run verification cannot contain results")
+        return self
 
 
 class HealthResponse(BaseModel):

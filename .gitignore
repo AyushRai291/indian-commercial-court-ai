@@ -1,5 +1,6 @@
 # Environment and local configuration
 .env
+frontend/.env.local
 .venv/
 venv/
 

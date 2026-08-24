@@ -1,11 +1,8 @@
-import type { AnswerResponse, VerificationResponse } from '../types'
+import type { ResearchResponse } from '../types'
 
-interface ProductionTraceProps {
-  answer: AnswerResponse
-  verification: VerificationResponse
-}
+export function ProductionTrace({ response }: { response: ResearchResponse }) {
+  const { latency } = response
 
-export function ProductionTrace({ answer, verification }: ProductionTraceProps) {
   return (
     <details className="production-trace">
       <summary>How this answer was produced</summary>
@@ -18,10 +15,9 @@ export function ProductionTrace({ answer, verification }: ProductionTraceProps) 
         <li>Citation Verification</li>
       </ol>
       <p>
-        Static fixture timing: retrieval {answer.retrieval_latency_ms.toFixed(1)} ms;
-        claim extraction {verification.claim_extraction_latency_ms.toFixed(1)} ms;
-        verification {verification.verification_latency_ms.toFixed(1)} ms; total verify{' '}
-        {verification.total_latency_ms.toFixed(1)} ms.
+        Live API timing: retrieval {latency.retrieval_ms.toFixed(1)} ms; generation{' '}
+        {latency.generation_ms.toFixed(1)} ms; verification{' '}
+        {latency.verification_ms.toFixed(1)} ms; total {latency.total_ms.toFixed(1)} ms.
       </p>
     </details>
   )

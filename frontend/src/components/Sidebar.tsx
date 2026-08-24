@@ -1,9 +1,7 @@
-import type { VerifiedResearchFixture } from '../types'
-
 interface SidebarProps {
-  examples: VerifiedResearchFixture[]
+  examples: string[]
   onNewResearch: () => void
-  onSelectExample: (answer: VerifiedResearchFixture) => void
+  onSelectExample: (query: string) => void
 }
 
 export function Sidebar({ examples, onNewResearch, onSelectExample }: SidebarProps) {
@@ -30,18 +28,18 @@ export function Sidebar({ examples, onNewResearch, onSelectExample }: SidebarPro
         <span className="nav-label">Demo questions</span>
         {examples.map((example) => (
           <button
-            key={example.answer.query}
+            key={example}
             type="button"
             onClick={() => onSelectExample(example)}
           >
-            {example.answer.query}
+            {example}
           </button>
         ))}
       </div>
 
       <div className="sidebar-note">
-        <span>Day 15 verifier preview</span>
-        <p>Answers, claim checks, and evidence are clearly marked static demo data.</p>
+        <span>Day 16 live research</span>
+        <p>Each query runs retrieval, grounded generation, and citation verification.</p>
       </div>
     </nav>
   )

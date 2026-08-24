@@ -1,19 +1,23 @@
-"""FastAPI entrypoint for search, grounded answers, and verification."""
+"""FastAPI entrypoint for search, grounded answers, and research."""
 
 from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import Protocol
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
 from legal_rag.api.schemas import (
     AnswerRequest,
     AnswerResponse,
     HealthResponse,
+    ResearchRequest,
+    ResearchResponse,
     SearchRequest,
     SearchResponse,
     VerifyRequest,
@@ -21,6 +25,8 @@ from legal_rag.api.schemas import (
 )
 from legal_rag.api.service import SearchService, build_search_service
 from legal_rag.generation import AnswerService, build_answer_service
+from legal_rag.generation.errors import GenerationError
+from legal_rag.research import ResearchService, build_research_service
 from legal_rag.verification.errors import (
     InvalidVerificationRequestError,
     VerificationError,
@@ -39,6 +45,11 @@ VERIFICATION_INVALID_DETAIL = (
 )
 VERIFICATION_UNAVAILABLE_DETAIL = (
     "Citation verification is temporarily unavailable."
+)
+RESEARCH_UNAVAILABLE_DETAIL = "Research workflow is temporarily unavailable."
+LOCAL_FRONTEND_ORIGINS = (
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
 )
 
 
@@ -60,11 +71,18 @@ class VerificationExecutor(Protocol):
     def verify(self, request: VerifyRequest) -> VerifyResponse: ...
 
 
+class ResearchExecutor(Protocol):
+    """Injectable end-to-end research boundary used by API tests."""
+
+    def research(self, request: ResearchRequest) -> ResearchResponse: ...
+
+
 def create_app(
     *,
     search_service: SearchExecutor | None = None,
     answer_service: AnswerExecutor | None = None,
     verification_service: VerificationExecutor | None = None,
+    research_service: ResearchExecutor | None = None,
     service_factory: Callable[[], SearchService] = build_search_service,
     answer_service_factory: Callable[[SearchExecutor], AnswerService] = (
         build_answer_service
@@ -72,6 +90,10 @@ def create_app(
     verification_service_factory: Callable[[], VerificationService] = (
         build_verification_service
     ),
+    research_service_factory: Callable[
+        [AnswerExecutor, VerificationExecutor],
+        ResearchService,
+    ] = build_research_service,
 ) -> FastAPI:
     """Create the application with optional prebuilt service boundaries."""
 
@@ -83,12 +105,26 @@ def create_app(
         application.state.search_service = search_service
         application.state.answer_service = answer_service
         application.state.verification_service = verification_service
+        application.state.research_service = research_service
+        application.state.model_warmup = None
+        application.state.search_startup_ms = None
         application.state.search_service_ready = search_service is not None
         if search_service is None:
+            startup_started = perf_counter()
             try:
                 owned_service = await run_in_threadpool(service_factory)
+                warmup_result = await run_in_threadpool(owned_service.warmup)
+                application.state.model_warmup = warmup_result
+                application.state.search_startup_ms = (
+                    perf_counter() - startup_started
+                ) * 1000.0
                 application.state.search_service = owned_service
                 application.state.search_service_ready = True
+                logging.getLogger("uvicorn.error").info(
+                    "Search service ready in %.1f ms; local models warmed in %.1f ms",
+                    application.state.search_startup_ms,
+                    warmup_result.total_ms,
+                )
             except Exception:
                 logger.exception("Search service initialization failed")
         resolved_search_service = application.state.search_service
@@ -111,6 +147,21 @@ def create_app(
                 )
             except Exception:
                 logger.exception("Verification service initialization failed")
+        resolved_answer_service = application.state.answer_service
+        resolved_verification_service = application.state.verification_service
+        if (
+            research_service is None
+            and resolved_answer_service is not None
+            and resolved_verification_service is not None
+        ):
+            try:
+                application.state.research_service = await run_in_threadpool(
+                    research_service_factory,
+                    resolved_answer_service,
+                    resolved_verification_service,
+                )
+            except Exception:
+                logger.exception("Research service initialization failed")
         try:
             yield
         finally:
@@ -125,6 +176,13 @@ def create_app(
         title="Indian Commercial Court Research API",
         version="0.1.0",
         lifespan=lifespan,
+    )
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(LOCAL_FRONTEND_ORIGINS),
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
 
     def get_search_service(request: Request) -> SearchExecutor:
@@ -151,6 +209,15 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=VERIFICATION_UNAVAILABLE_DETAIL,
+            )
+        return service
+
+    def get_research_service(request: Request) -> ResearchExecutor:
+        service = getattr(request.app.state, "research_service", None)
+        if service is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=RESEARCH_UNAVAILABLE_DETAIL,
             )
         return service
 
@@ -212,6 +279,29 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=VERIFICATION_UNAVAILABLE_DETAIL,
+            ) from None
+
+    @application.post("/research", response_model=ResearchResponse)
+    async def research(
+        research_request: ResearchRequest,
+        service: ResearchExecutor = Depends(get_research_service),
+    ) -> ResearchResponse:
+        try:
+            return await run_in_threadpool(
+                service.research,
+                research_request,
+            )
+        except GenerationError:
+            logger.warning("End-to-end answer generation unavailable")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=GENERATION_UNAVAILABLE_DETAIL,
+            ) from None
+        except Exception:
+            logger.exception("End-to-end research workflow failed")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=RESEARCH_UNAVAILABLE_DETAIL,
             ) from None
 
     return application

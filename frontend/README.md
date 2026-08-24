@@ -1,16 +1,23 @@
 # Commercial Court Research UI
 
-Day 15 presentation shell for the Indian Commercial Court legal research
-workspace. It is a React, Vite, and TypeScript app with a desktop-first
-claim, citation, evidence, and verification layout.
+Day 16 live workspace for the Indian Commercial Court legal research system. It
+is a React, Vite, and TypeScript app with a desktop-first claim, citation,
+evidence, and verification layout. The primary workflow calls backend
+`POST /research`; mocks remain isolated test fixtures and are never a runtime
+fallback.
 
-The UI currently pairs clearly labelled, API-shaped `/answer` and `/verify`
-static fixtures from `src/mocks/answerResponses.ts`. It does not call the
-backend, orchestrate the two endpoints, or write to the corpus.
+Start the backend on port 8000, then optionally create `.env.local` here:
+
+```text
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Never put `GEMINI_API_KEY` in a `VITE_` variable; Vite variables are shipped to
+the browser bundle.
 
 ```powershell
-npm install
-npm run dev
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 Run the verification gates with:

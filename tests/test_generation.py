@@ -25,19 +25,22 @@ from legal_rag.api.service import (
     SearchService,
 )
 from legal_rag.config import (
-    DEFAULT_OPENAI_MODEL,
-    DEFAULT_OPENAI_TIMEOUT_SECONDS,
+    DEFAULT_GEMINI_MODEL,
+    DEFAULT_GEMINI_TIMEOUT_SECONDS,
     Settings,
 )
+import legal_rag.generation.provider as provider_module
 from legal_rag.generation import (
     EVIDENCE_END_DELIMITER,
     EVIDENCE_START_DELIMITER,
     NO_EVIDENCE_ANSWER,
     AnswerService,
+    GeminiProvider,
     GroundedModelOutput,
-    OpenAIResponsesProvider,
+    MalformedModelResponseError,
     ProviderUnavailableError,
     assign_evidence_ids,
+    build_answer_service,
     build_grounded_prompt,
 )
 from legal_rag.retrieval import RerankedSearchResult, RetrievalFilters
@@ -407,83 +410,170 @@ def test_answer_request_does_not_accept_mode_or_user_supplied_evidence() -> None
     assert search.requests == []
 
 
-def test_settings_load_openai_defaults_and_environment(monkeypatch: Any) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_MODEL", raising=False)
-    monkeypatch.delenv("OPENAI_TIMEOUT_SECONDS", raising=False)
+def test_settings_load_gemini_defaults_and_environment(monkeypatch: Any) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_VERIFIER_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "ignored-legacy-key")
 
     defaults = Settings.from_env()
 
-    assert defaults.openai_api_key is None
-    assert defaults.openai_model == DEFAULT_OPENAI_MODEL == "gpt-5-mini"
-    assert defaults.openai_timeout_seconds == DEFAULT_OPENAI_TIMEOUT_SECONDS == 60.0
+    assert defaults.gemini_api_key is None
+    assert defaults.gemini_model == DEFAULT_GEMINI_MODEL == "gemini-3.6-flash"
+    assert defaults.gemini_verifier_model is None
+    assert defaults.gemini_timeout_seconds == DEFAULT_GEMINI_TIMEOUT_SECONDS == 60.0
+    assert not hasattr(defaults, "openai_api_key")
 
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-real")
-    monkeypatch.setenv("OPENAI_MODEL", "configured-model")
-    monkeypatch.setenv("OPENAI_TIMEOUT_SECONDS", "12.5")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-real")
+    monkeypatch.setenv("GEMINI_MODEL", "configured-model")
+    monkeypatch.setenv("GEMINI_VERIFIER_MODEL", "configured-verifier")
+    monkeypatch.setenv("GEMINI_TIMEOUT_SECONDS", "12.5")
     configured = Settings.from_env()
-    assert configured.openai_api_key == "test-key-not-real"
-    assert configured.openai_model == "configured-model"
-    assert configured.openai_timeout_seconds == 12.5
+    assert configured.gemini_api_key == "test-key-not-real"
+    assert configured.gemini_model == "configured-model"
+    assert configured.gemini_verifier_model == "configured-verifier"
+    assert configured.gemini_timeout_seconds == 12.5
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "infinity", "not-a-number"])
-def test_settings_reject_invalid_openai_timeout(
+def test_settings_reject_invalid_gemini_timeout(
     monkeypatch: Any,
     value: str,
 ) -> None:
-    monkeypatch.setenv("OPENAI_TIMEOUT_SECONDS", value)
+    monkeypatch.setenv("GEMINI_TIMEOUT_SECONDS", value)
 
-    with pytest.raises(ValueError, match="OPENAI_TIMEOUT_SECONDS"):
+    with pytest.raises(ValueError, match="GEMINI_TIMEOUT_SECONDS"):
         Settings.from_env()
 
 
-def test_openai_provider_uses_responses_parse_with_pydantic_contract() -> None:
+def test_gemini_provider_uses_structured_json_and_reuses_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     output = GroundedModelOutput(
         answer="The evidence supports the proposition. [E1]",
         used_evidence_ids=["E1"],
     )
     calls: list[dict[str, Any]] = []
+    client_arguments: list[dict[str, Any]] = []
 
-    class _Responses:
-        def parse(self, **kwargs: Any) -> Any:
+    class _Models:
+        def generate_content(self, **kwargs: Any) -> Any:
             calls.append(kwargs)
-            return SimpleNamespace(output_parsed=output)
+            return SimpleNamespace(parsed=output, text=None)
 
     class _Client:
-        responses = _Responses()
-        closed = False
+        def __init__(self) -> None:
+            self.models = _Models()
+            self.closed = False
 
         def close(self) -> None:
             self.closed = True
 
-    provider = OpenAIResponsesProvider(
+    clients: list[_Client] = []
+
+    def _client_factory(**kwargs: Any) -> _Client:
+        client_arguments.append(kwargs)
+        client = _Client()
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(provider_module.genai, "Client", _client_factory)
+    provider = GeminiProvider(
         api_key="test-key-not-real",
-        model="gpt-5-mini",
+        model="gemini-3.6-flash",
         timeout_seconds=30.0,
     )
-    fake_client = _Client()
-    provider._client = fake_client
     prompt = build_grounded_prompt(
         "ineligible arbitrator",
         assign_evidence_ids([_search_result()]),
     )
 
     assert provider.generate(prompt) == output
-    assert calls[0]["model"] == "gpt-5-mini"
-    assert calls[0]["text_format"] is GroundedModelOutput
-    assert calls[0]["input"] == [
-        {"role": "system", "content": prompt.system_prompt},
-        {"role": "user", "content": prompt.user_prompt},
-    ]
+    assert provider.generate(prompt) == output
+    assert len(clients) == 1
+    assert len(calls) == 2
+    assert calls[0]["model"] == "gemini-3.6-flash"
+    assert calls[0]["contents"] == prompt.user_prompt
+    config = calls[0]["config"]
+    assert config.system_instruction == prompt.system_prompt
+    assert config.response_mime_type == "application/json"
+    assert config.response_json_schema == GroundedModelOutput.model_json_schema()
+    assert config.automatic_function_calling.disable is True
+    assert client_arguments[0]["api_key"] == "test-key-not-real"
+    assert client_arguments[0]["http_options"].timeout == 30_000
     provider.close()
-    assert fake_client.closed is True
+    assert clients[0].closed is True
+    assert provider._client is None
 
 
-def test_openai_provider_missing_key_fails_without_network_call() -> None:
-    provider = OpenAIResponsesProvider(
-        api_key=None,
-        model="gpt-5-mini",
+@pytest.mark.parametrize(
+    "response",
+    [
+        SimpleNamespace(parsed=None, text="{not-json"),
+        SimpleNamespace(parsed={"answer": "Missing ID list. [E1]"}, text=None),
+        SimpleNamespace(parsed=None, text=None),
+    ],
+    ids=["invalid-json", "schema-mismatch", "empty-response"],
+)
+def test_gemini_provider_rejects_malformed_structured_response(
+    response: Any,
+) -> None:
+    class _Models:
+        def generate_content(self, **_kwargs: Any) -> Any:
+            return response
+
+    provider = GeminiProvider(
+        api_key="test-key-not-real",
+        model="gemini-3.6-flash",
+        timeout_seconds=30.0,
+    )
+    provider._client = SimpleNamespace(models=_Models())
+    prompt = build_grounded_prompt(
+        "ineligible arbitrator",
+        assign_evidence_ids([_search_result()]),
+    )
+
+    with pytest.raises(MalformedModelResponseError):
+        provider.generate(prompt)
+
+
+def test_gemini_provider_maps_api_failure_without_leaking_detail() -> None:
+    private_detail = "private-provider-token-and-path"
+
+    class _Models:
+        def generate_content(self, **_kwargs: Any) -> Any:
+            raise RuntimeError(private_detail)
+
+    provider = GeminiProvider(
+        api_key="test-key-not-real",
+        model="gemini-3.6-flash",
+        timeout_seconds=30.0,
+    )
+    provider._client = SimpleNamespace(models=_Models())
+    prompt = build_grounded_prompt(
+        "ineligible arbitrator",
+        assign_evidence_ids([_search_result()]),
+    )
+
+    with pytest.raises(ProviderUnavailableError) as exc_info:
+        provider.generate(prompt)
+
+    assert private_detail not in str(exc_info.value)
+
+
+@pytest.mark.parametrize("api_key", [None, "", "   "])
+def test_gemini_provider_missing_key_fails_without_client_creation(
+    monkeypatch: pytest.MonkeyPatch,
+    api_key: str | None,
+) -> None:
+    def _unexpected_client(**_kwargs: Any) -> Any:
+        raise AssertionError("client must not be created without a key")
+
+    monkeypatch.setattr(provider_module.genai, "Client", _unexpected_client)
+    provider = GeminiProvider(
+        api_key=api_key,
+        model="gemini-3.6-flash",
         timeout_seconds=30.0,
     )
     prompt = build_grounded_prompt(
@@ -493,3 +583,59 @@ def test_openai_provider_missing_key_fails_without_network_call() -> None:
 
     with pytest.raises(ProviderUnavailableError, match="not configured"):
         provider.generate(prompt)
+
+
+def test_settings_treats_whitespace_gemini_key_as_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "   ")
+
+    assert Settings.from_env().gemini_api_key is None
+
+
+def test_answer_endpoint_missing_gemini_key_returns_generic_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _unexpected_client(**_kwargs: Any) -> Any:
+        raise AssertionError("client must not be created without a key")
+
+    monkeypatch.setattr(provider_module.genai, "Client", _unexpected_client)
+    search = _SearchStub(_search_response([_search_result()]))
+    answer_service = AnswerService(
+        search,
+        GeminiProvider(
+            api_key=None,
+            model="gemini-3.6-flash",
+            timeout_seconds=30.0,
+        ),
+    )
+
+    with TestClient(
+        create_app(search_service=search, answer_service=answer_service)
+    ) as client:
+        response = client.post(
+            "/answer",
+            json={"query": "ineligible arbitrator"},
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": GENERATION_UNAVAILABLE_DETAIL}
+
+
+def test_answer_service_builder_has_no_openai_runtime_dependency() -> None:
+    search = _SearchStub(_search_response([]))
+    service = build_answer_service(
+        search,
+        Settings(
+            gemini_api_key="test-key-not-real",
+            gemini_model="answer-model",
+        ),
+    )
+
+    assert isinstance(service.provider, GeminiProvider)
+    assert service.provider.api_key == "test-key-not-real"
+    assert service.provider.model == "answer-model"
+    assert "test-key-not-real" not in repr(service.provider)
+    assert "test-key-not-real" not in repr(
+        Settings(gemini_api_key="test-key-not-real")
+    )

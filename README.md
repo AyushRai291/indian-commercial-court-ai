@@ -1,13 +1,14 @@
-# Indian Commercial Court RAG - Corpus Foundation
+# Indian Commercial Court RAG
 
-This repository contains the corpus, retrieval, and grounded-generation foundation
-for an Indian Commercial Court legal RAG system. It normalizes heterogeneous
-judgment records, stores cases and paragraphs in PostgreSQL, indexes paragraph
-embeddings in Qdrant, and can generate answers over request-local reranked evidence.
+This repository contains an end-to-end Indian Commercial Court legal RAG system.
+It normalizes judgments, stores cases and paragraphs in PostgreSQL, indexes
+paragraph embeddings in Qdrant, retrieves and reranks exact evidence, generates a
+Gemini-grounded answer, and semantically verifies each cited claim. The live React
+workspace calls the composed `/research` API while preserving exact paragraph and
+source provenance.
 
-The Day 15 frontend is a presentation shell driven by clearly labelled static mock
-answer and verification responses. Live frontend/API orchestration, automatic
-answer repair, LangChain, OpenSearch, OCR, and authentication remain out of scope.
+Automatic answer repair, LangChain, OpenSearch, OCR, authentication, and chat
+history remain out of scope.
 
 ## Repository layout
 
@@ -29,7 +30,8 @@ backend/legal_rag/
   api/                      FastAPI schemas, shared retrieval service, and app
   generation/               Evidence IDs, grounded prompt, provider, and answer service
   verification/             Claim extraction, cited-evidence verifier, and result assembly
-frontend/                   React/Vite legal-research presentation shell
+  research/                 Answer-and-verification composition for POST /research
+frontend/                   Live React/Vite legal-research workspace
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
   extract_judgments.py      Text-native PDF extraction with page boundaries
@@ -49,12 +51,15 @@ data/manifests/             Tracked pilot provenance manifest and audit
 ## Prerequisites
 
 - Python 3.10 or newer
+- Node.js `^20.19.0` or `>=22.12.0`
 - Docker with Docker Compose
 
 ## Setup
 
-Create the local environment file. Docker Compose reads `.env` automatically;
-the checked-in defaults also work without it.
+Create the local environment file. Docker Compose reads the root `.env`
+automatically; the checked-in database defaults also work without it. Python does
+not load this file implicitly, so provider variables must be present in the API
+process environment.
 
 ```powershell
 Copy-Item .env.example .env
@@ -96,13 +101,21 @@ example:
 $env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
 ```
 
-## Search, grounded-answer, and verification API
+## Search, grounded-answer, verification, and research API
 
-Start the API after PostgreSQL and Qdrant are healthy and the package is installed:
+Start the API after PostgreSQL and Qdrant are healthy, the package is installed,
+and `GEMINI_API_KEY` is exported as described below:
 
 ```powershell
-uvicorn legal_rag.api.app:app --reload
+uvicorn legal_rag.api.app:app --host 127.0.0.1 --port 8000
 ```
+
+The production lifespan performs one mutation-free local inference through the
+dense embedding model and cross-encoder before declaring search ready. It does not
+query or write PostgreSQL/Qdrant and does not call Gemini. This moves the local
+model cold start to API startup; for a presentation, wait for startup completion
+before opening the frontend. Auto-reload can repeat warmup after source changes, so
+the plain command above is preferable for the demo.
 
 The generated OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
 `GET /health` is a lightweight process-liveness check. `POST /search` accepts
@@ -161,15 +174,34 @@ evidence to the configured model, and returns the answer plus the complete
 paragraph provenance needed by the UI. Callers cannot provide evidence or select
 a weaker retrieval mode.
 
-Configure the single OpenAI provider through environment variables; never commit a
-real key:
+Generation and verification use the official `google-genai` SDK and the Gemini
+Developer API. Configure the server process through environment variables; never
+commit or expose a real key to the frontend:
 
 ```powershell
-$env:OPENAI_API_KEY = "your-key"
-$env:OPENAI_MODEL = "gpt-5-mini"       # optional default
-$env:OPENAI_VERIFIER_MODEL = ""        # optional; falls back to OPENAI_MODEL
-$env:OPENAI_TIMEOUT_SECONDS = "60"     # optional default
+$env:GEMINI_API_KEY = "your-key"
+$env:GEMINI_MODEL = "gemini-3.6-flash"          # optional default
+$env:GEMINI_VERIFIER_MODEL = "gemini-3.6-flash" # blank falls back to GEMINI_MODEL
+$env:GEMINI_TIMEOUT_SECONDS = "60"               # optional default
 ```
+
+To persist only the key for the current Windows user, run the following and then
+open a new terminal so the new process inherits it:
+
+```powershell
+[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key", "User")
+```
+
+`gemini-3.6-flash` is the current configured generation and verifier default; the
+older requested `gemini-2.5-flash` is unavailable to new users. Model names remain
+centralized and can be overridden with the variables above. Google currently lists
+standard Gemini 3.6 Flash input/output as free of charge on the Developer API Free
+Tier, but [pricing](https://ai.google.dev/gemini-api/docs/pricing) and
+[rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) can change and are
+not guaranteed. Under the [Gemini API terms](https://ai.google.dev/gemini-api/terms),
+content submitted to unpaid services may be used to improve products and may be
+human-reviewed. Use the free tier only with public, non-sensitive material—never
+confidential, privileged, personal, or client data.
 
 Example request:
 
@@ -212,13 +244,14 @@ The response shape is:
 }
 ```
 
-The generation provider uses a structured output contract and the API rejects
+The provider requests `application/json` with Gemini `response_json_schema`, then
+revalidates the result through the existing strict Pydantic contract. The API rejects
 unknown or malformed evidence IDs and mismatches between inline citations and
 `used_evidence_ids`. These are structural integrity checks. With zero retrieved
 evidence, the provider is skipped and a deterministic insufficiency response is
 returned.
 
-`POST /verify` is a separate Day 15 service: it does not retrieve, regenerate, or
+`POST /verify` remains a standalone service: it does not retrieve, regenerate, or
 rewrite an answer. It deterministically extracts ordered material claims from an
 existing answer, attaches only the citations written with each claim, and sends
 all cited claims in one bounded structured-output request. Within that batch,
@@ -279,25 +312,85 @@ classification, not proof that an answer is legally correct. The verifier is
 itself model-based and can make mistakes; its concise reason and exact evidence
 remain visible for human review.
 
-## Frontend citation-verification shell
+`POST /research` composes the existing services in one request:
 
-The desktop-first legal research workspace currently uses API-shaped fixtures in
-`frontend/src/mocks/`; it does not call `/answer` or `/verify`, and it does not
-write demo records to the corpus. Run it with:
+```text
+query -> reranked retrieval -> E1...En assignment -> grounded generation
+      -> structural citation validation -> claim extraction -> citation verification
+```
+
+It accepts the same `query`, `top_k`, and exact `court`/`year`/`case_number`
+filters as `/answer`. It does not duplicate the `/answer` or `/verify` business
+logic, and those standalone endpoints remain available. A successful response is:
+
+```json
+{
+  "query": "...",
+  "answer": "... [E1]",
+  "used_evidence_ids": ["E1"],
+  "evidence": [{"evidence_id": "E1", "paragraph_uid": "..."}],
+  "claims": [{
+    "claim_id": "C1",
+    "claim": "...",
+    "citation_ids": ["E1"],
+    "status": "SUPPORTED",
+    "reason": "...",
+    "evidence_uids": ["..."]
+  }],
+  "verification_summary": {"supported": 1, "partial": 0, "unsupported": 0},
+  "verification_state": "complete",
+  "verification_error": null,
+  "latency": {
+    "retrieval_ms": 0,
+    "generation_ms": 0,
+    "verification_ms": 0,
+    "total_ms": 0
+  }
+}
+```
+
+With zero evidence, both Gemini calls are skipped and `verification_state` is
+`not_run` with an empty claim list and zero summary. A generation failure prevents
+verification and returns a generic `503`. If only verification fails, the endpoint
+returns the successfully generated answer and evidence with HTTP `200`, an empty
+claim list, `verification_summary: null`, `verification_state: "unavailable"`, and
+a safe human-readable `verification_error`; it never fabricates verifier results.
+
+## Live frontend citation-verification workspace
+
+Start the API first, then run the desktop-first workspace in a second terminal:
 
 ```powershell
 Set-Location frontend
-npm install
-npm run dev
+npm ci
+$env:VITE_API_BASE_URL = "http://127.0.0.1:8000"
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-The shell presents each material claim with clickable `[E1]` citations and an
-explicit `SUPPORTED`, `PARTIAL`, or `UNSUPPORTED` label. Claim selection
+`VITE_API_BASE_URL` is optional locally and defaults to the URL shown above. It is
+the only browser-exposed API setting; never create `VITE_GEMINI_API_KEY` or place a
+provider secret in frontend files. The backend permits only the local Vite origins
+`127.0.0.1:5173` and `localhost:5173` for cross-origin requests.
+
+The primary submit action calls `POST /research`; static API-shaped fixtures remain
+only for isolated frontend tests and are never a runtime fallback. The workspace
+presents each material claim with clickable `[E1]` citations and an explicit
+`SUPPORTED`, `PARTIAL`, or `UNSUPPORTED` label. Claim selection
 highlights every cited evidence item, opens the exact paragraph, updates a compact
 verifier explanation, and shows the evidence-to-claim relationship in the
-full-provenance rail. Summary counts and a collapsible production-path reveal are
-included without a confidence percentage or hidden model reasoning. Loading,
-empty, no-result, backend-error, and generation-error states remain available.
+full-provenance rail. The non-streaming loading sequence is a general progress
+indicator, not exact server events. Backend/provider failures and unavailable
+verification are shown as human-readable states without raw JSON or stack traces.
+
+This remains a 100-judgment, Supreme-Court-only pilot, not a comprehensive legal
+research product or legal advice. Retrieval may return lexically or semantically
+nearest evidence for an out-of-domain query, so the grounded model must still
+decline when that evidence is insufficient. Gemini generation and semantic
+verification are nondeterministic external-model judgments and require human review.
+The first startup may download model files, each API worker loads its own local
+model copies, and warmup does not remove database, vector-search, network, or
+Gemini latency. `GET /health` is process liveness rather than a production
+dependency-readiness probe.
 
 ## Database migrations
 
@@ -674,6 +767,29 @@ Run the complete suite:
 ```powershell
 python -m pytest -q
 ```
+
+Gemini is mocked in the normal backend suite; only the explicitly documented live
+smokes use a real key. Provider tests cover JSON-schema parsing, malformed and
+unavailable responses, missing/whitespace keys, timeout conversion, secret-safe
+representation, and client reuse. Research tests cover composition, filters,
+provenance, latency fields, all three verification states, failure short circuits,
+preserved answer/evidence, local CORS, existing endpoint regressions, and safe model
+warmup without downloading models.
+
+Run the frontend gates separately:
+
+```powershell
+Set-Location frontend
+npm test
+npm run lint
+npm run build
+npm audit
+```
+
+Frontend tests mock only the HTTP boundary and cover the exact request payload,
+clean optional filters, loading stages, live response rendering, claim-to-evidence
+interaction, verification reasons, zero evidence, unavailable verification, and API
+errors. They never silently substitute a fixture after a failed request.
 
 The tests cover normalization, document and paragraph deduplication, paragraph
 number/page extraction, relational insertion, duplicate skipping, statute

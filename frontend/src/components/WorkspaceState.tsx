@@ -17,9 +17,14 @@ const stateCopy: Record<Exclude<WorkspaceView, 'result' | 'loading'>, { label: s
     body: 'Your query is preserved. Try again after the research service is available.',
   },
   'generation-error': {
-    label: 'Generation unavailable',
+    label: 'Gemini unavailable',
     title: 'Evidence was found, but no grounded answer was prepared',
-    body: 'The evidence can still be reviewed directly. No answer has been invented or substituted.',
+    body: 'The model provider may be unavailable or out of quota. Your query is preserved, and no answer has been invented or substituted.',
+  },
+  'verification-error': {
+    label: 'Verification unavailable',
+    title: 'Citation verification could not be completed',
+    body: 'No verification result has been invented. Keep the query and try again when the verifier is available.',
   },
 }
 

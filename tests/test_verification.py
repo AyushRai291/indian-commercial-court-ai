@@ -16,6 +16,9 @@ from legal_rag.api.app import (
 from legal_rag.api.schemas import AnswerEvidence, VerifyRequest
 from legal_rag.config import Settings
 from legal_rag.generation.evidence import cited_evidence_ids
+from legal_rag.generation.models import GroundedPrompt
+import legal_rag.generation.provider as provider_module
+from legal_rag.generation.provider import GeminiProvider
 from legal_rag.generation.service import NO_EVIDENCE_ANSWER
 from legal_rag.verification.claims import extract_material_claims
 from legal_rag.verification.errors import MalformedVerifierResponseError
@@ -24,7 +27,7 @@ from legal_rag.verification.models import (
     VerifierBatchOutput,
     VerifierModelResult,
 )
-from legal_rag.verification.provider import OpenAIVerificationProvider
+from legal_rag.verification.provider import StructuredVerificationProvider
 from legal_rag.verification.prompt import (
     VERIFICATION_DATA_END_DELIMITER,
     VERIFICATION_DATA_START_DELIMITER,
@@ -535,16 +538,16 @@ def test_prompt_injection_text_stays_inside_escaped_untrusted_json() -> None:
 def test_verifier_model_configuration_falls_back_or_overrides() -> None:
     fallback = build_verification_service(
         Settings(
-            openai_api_key="test-key-not-real",
-            openai_model="answer-model",
-            openai_verifier_model=None,
+            gemini_api_key="test-key-not-real",
+            gemini_model="answer-model",
+            gemini_verifier_model=None,
         )
     )
     override = build_verification_service(
         Settings(
-            openai_api_key="test-key-not-real",
-            openai_model="answer-model",
-            openai_verifier_model="verifier-model",
+            gemini_api_key="test-key-not-real",
+            gemini_model="answer-model",
+            gemini_verifier_model="verifier-model",
         )
     )
 
@@ -555,18 +558,18 @@ def test_verifier_model_configuration_falls_back_or_overrides() -> None:
 def test_verifier_model_environment_is_optional_and_separate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("OPENAI_MODEL", "answer-model")
-    monkeypatch.delenv("OPENAI_VERIFIER_MODEL", raising=False)
+    monkeypatch.setenv("GEMINI_MODEL", "answer-model")
+    monkeypatch.delenv("GEMINI_VERIFIER_MODEL", raising=False)
 
     fallback = Settings.from_env()
-    monkeypatch.setenv("OPENAI_VERIFIER_MODEL", "verifier-model")
+    monkeypatch.setenv("GEMINI_VERIFIER_MODEL", "verifier-model")
     override = Settings.from_env()
 
-    assert fallback.openai_verifier_model is None
-    assert override.openai_verifier_model == "verifier-model"
+    assert fallback.gemini_verifier_model is None
+    assert override.gemini_verifier_model == "verifier-model"
 
 
-def test_openai_verifier_adapter_requests_one_batched_structured_type() -> None:
+def test_structured_verifier_adapter_requests_one_batched_type() -> None:
     calls: list[tuple[Any, type[Any]]] = []
     expected = VerifierBatchOutput(
         results=[
@@ -587,7 +590,81 @@ def test_openai_verifier_adapter_requests_one_batched_structured_type() -> None:
             pass
 
     prompt = object()
-    provider = OpenAIVerificationProvider(_StructuredProvider())
+    provider = StructuredVerificationProvider(_StructuredProvider())
 
     assert provider.verify(prompt) is expected
     assert calls == [(prompt, VerifierBatchOutput)]
+
+
+def test_gemini_verifier_parses_existing_pydantic_contract() -> None:
+    expected = VerifierBatchOutput(
+        results=[
+            VerifierModelResult(
+                claim_id="C1",
+                status=VerificationStatus.SUPPORTED,
+                reason="E1 directly supports C1.",
+            )
+        ]
+    )
+    calls: list[dict[str, Any]] = []
+
+    class _Models:
+        def generate_content(self, **kwargs: Any) -> Any:
+            calls.append(kwargs)
+            return type("Response", (), {"parsed": expected, "text": None})()
+
+    structured = GeminiProvider(
+        api_key="test-key-not-real",
+        model="verifier-model",
+        timeout_seconds=30.0,
+    )
+    structured._client = type("Client", (), {"models": _Models()})()
+    provider = StructuredVerificationProvider(structured)
+    prompt = GroundedPrompt(system_prompt="system", user_prompt="user")
+
+    assert provider.verify(prompt) == expected
+    assert calls[0]["config"].response_mime_type == "application/json"
+    assert calls[0]["config"].response_json_schema == (
+        VerifierBatchOutput.model_json_schema()
+    )
+    assert calls[0]["config"].automatic_function_calling.disable is True
+
+
+def test_verify_service_builder_has_no_openai_runtime_dependency() -> None:
+    service = build_verification_service(
+        Settings(
+            gemini_api_key="test-key-not-real",
+            gemini_model="answer-model",
+            gemini_verifier_model="verifier-model",
+        )
+    )
+
+    assert isinstance(service.provider, StructuredVerificationProvider)
+    assert isinstance(service.provider.provider, GeminiProvider)
+    assert service.provider.provider.model == "verifier-model"
+
+
+def test_verify_endpoint_missing_gemini_key_returns_generic_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _unexpected_client(**_kwargs: Any) -> Any:
+        raise AssertionError("client must not be created without a key")
+
+    monkeypatch.setattr(provider_module.genai, "Client", _unexpected_client)
+    provider = StructuredVerificationProvider(
+        GeminiProvider(
+            api_key=None,
+            model="gemini-3.6-flash",
+            timeout_seconds=30.0,
+        )
+    )
+    request = _request(
+        "An ineligible arbitrator cannot nominate another arbitrator. [E1]",
+        [_evidence()],
+    )
+
+    with _client(provider) as client:  # type: ignore[arg-type]
+        response = client.post("/verify", json=_payload(request))
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": VERIFICATION_UNAVAILABLE_DETAIL}

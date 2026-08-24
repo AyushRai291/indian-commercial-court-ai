@@ -10,7 +10,7 @@ export function TopBar() {
       </div>
       <div className="topbar__status">
         <span className="corpus-pill">100 judgments</span>
-        <span className="preview-status"><i aria-hidden="true" /> Verifier preview · static</span>
+        <span className="preview-status"><i aria-hidden="true" /> Gemini research flow · live</span>
       </div>
     </header>
   )

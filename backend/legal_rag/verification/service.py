@@ -23,7 +23,7 @@ from legal_rag.generation.errors import (
 )
 from legal_rag.generation.evidence import validate_citation_integrity
 from legal_rag.generation.models import GroundedModelOutput
-from legal_rag.generation.provider import OpenAIResponsesProvider
+from legal_rag.generation.provider import GeminiProvider
 from legal_rag.verification.claims import extract_material_claims
 from legal_rag.verification.errors import (
     InvalidVerificationRequestError,
@@ -39,7 +39,7 @@ from legal_rag.verification.models import (
 )
 from legal_rag.verification.prompt import build_verifier_prompt
 from legal_rag.verification.provider import (
-    OpenAIVerificationProvider,
+    StructuredVerificationProvider,
     VerificationProvider,
 )
 
@@ -220,17 +220,17 @@ class VerificationService:
 def build_verification_service(
     settings: Settings | None = None,
 ) -> VerificationService:
-    """Compose the verifier over the same lazy OpenAI provider boundary."""
+    """Compose the verifier over the same lazy Gemini provider boundary."""
 
     runtime_settings = settings or get_settings()
-    structured_provider = OpenAIResponsesProvider(
-        api_key=runtime_settings.openai_api_key,
+    structured_provider = GeminiProvider(
+        api_key=runtime_settings.gemini_api_key,
         model=(
-            runtime_settings.openai_verifier_model
-            or runtime_settings.openai_model
+            runtime_settings.gemini_verifier_model
+            or runtime_settings.gemini_model
         ),
-        timeout_seconds=runtime_settings.openai_timeout_seconds,
+        timeout_seconds=runtime_settings.gemini_timeout_seconds,
     )
     return VerificationService(
-        OpenAIVerificationProvider(structured_provider)
+        StructuredVerificationProvider(structured_provider)
     )

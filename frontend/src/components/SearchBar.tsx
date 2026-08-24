@@ -6,6 +6,7 @@ interface SearchBarProps {
   query: string
   filters: SearchFilters
   validationError: string | null
+  isLoading: boolean
   onQueryChange: (query: string) => void
   onFiltersChange: (filters: SearchFilters) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -15,12 +16,18 @@ export function SearchBar({
   query,
   filters,
   validationError,
+  isLoading,
   onQueryChange,
   onFiltersChange,
   onSubmit,
 }: SearchBarProps) {
   return (
-    <form className="query-card" aria-label="Legal research query" onSubmit={onSubmit}>
+    <form
+      className="query-card"
+      aria-busy={isLoading}
+      aria-label="Legal research query"
+      onSubmit={onSubmit}
+    >
       <label className="query-label" htmlFor="legal-query">Legal question</label>
       <textarea
         id="legal-query"
@@ -41,7 +48,10 @@ export function SearchBar({
       <FilterBar filters={filters} onChange={onFiltersChange} />
       <div className="query-card__footer">
         <span>Reranked evidence · grounded answer</span>
-        <button type="submit">Research judgments <span aria-hidden="true">→</span></button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Researching judgments…' : 'Research judgments'}{' '}
+          <span aria-hidden="true">→</span>
+        </button>
       </div>
     </form>
   )

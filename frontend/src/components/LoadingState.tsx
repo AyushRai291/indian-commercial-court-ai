@@ -1,8 +1,8 @@
 const stages = [
   'Searching judgments',
-  'Ranking relevant paragraphs',
-  'Preparing grounded answer',
-  'Verifying claim citations',
+  'Ranking evidence',
+  'Generating grounded answer',
+  'Verifying citations',
 ]
 
 export function LoadingState({ activeStage }: { activeStage: number }) {
@@ -11,6 +11,7 @@ export function LoadingState({ activeStage }: { activeStage: number }) {
       <div className="loading-state__heading">
         <span className="eyebrow">Research in progress</span>
         <h2>Working through the judgment corpus</h2>
+        <p>One non-streaming request runs the complete research pipeline.</p>
       </div>
       <ol>
         {stages.map((stage, index) => (

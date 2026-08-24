@@ -122,7 +122,7 @@
 .eyebrow { color: var(--accent); }
 .research-heading h1 { margin: 5px 0 5px; color: var(--ink); font: 500 clamp(27px, 2.1vw, 34px)/1.14 Georgia, serif; letter-spacing: -.025em; }
 .research-heading p { margin: 0; color: var(--muted); font-size: 13px; }
-.mock-label { flex: 0 0 auto; padding: 6px 9px; border: 1px solid #d9c3ba; border-radius: 5px; color: var(--accent); background: #fff8f4; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.environment-label { flex: 0 0 auto; padding: 6px 9px; border: 1px solid #bfd3c5; border-radius: 5px; color: var(--positive); background: #f3f8f4; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 
 .query-card, .answer-card, .evidence-list, .loading-state, .workspace-state {
   border: 1px solid var(--line);
@@ -146,12 +146,18 @@
 .query-card__footer > span { color: var(--muted); font-size: 11px; }
 .query-card__footer button { padding: 9px 13px; border: 0; border-radius: 7px; background: var(--accent); color: #fff; cursor: pointer; font-size: 12px; font-weight: 750; box-shadow: 0 5px 12px rgba(136,72,59,.18); }
 .query-card__footer button:hover { background: var(--accent-dark); }
+.query-card__footer button:disabled { opacity: .68; cursor: wait; }
 .query-card__footer button span { margin-left: 8px; }
 
 .answer-card { margin-top: 16px; padding: 21px 23px; border-radius: 10px; border-top: 3px solid var(--navy-900); }
 .section-heading { justify-content: space-between; gap: 18px; }
 .section-heading h2 { margin: 4px 0 0; color: var(--ink); font: 500 19px/1.2 Georgia, serif; }
 .evidence-count, .rank-order { color: var(--muted); font-size: 11px; }
+.grounded-response { margin-top: 16px; padding: 16px; border: 1px solid #d8d2c8; border-radius: 8px; background: #f9f7f2; }
+.grounded-response p { margin: 9px 0 0; color: #28364a; font: 400 15px/1.65 Georgia, serif; white-space: pre-wrap; }
+.verification-notice { margin-top: 12px; padding: 13px 14px; border: 1px solid #e2c993; border-radius: 8px; color: #6b511e; background: var(--warning-soft); }
+.verification-notice strong { font-size: 12px; }
+.verification-notice p { margin: 5px 0 0; font-size: 11px; line-height: 1.5; }
 .verification-summary {
   margin-top: 16px;
   padding: 10px 12px;
@@ -350,6 +356,7 @@
 .loading-state, .workspace-state { margin-top: 16px; border-radius: 10px; }
 .loading-state { padding: 24px; }
 .loading-state__heading h2, .workspace-state h2 { margin: 6px 0 0; color: var(--ink); font: 500 21px/1.3 Georgia, serif; }
+.loading-state__heading p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
 .loading-state ol { margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; list-style: none; }
 .loading-state li { display: grid; grid-template-columns: 27px 1fr; gap: 9px; align-items: center; padding: 13px; border: 1px solid #e2ddd4; border-radius: 7px; color: #8a9096; }
 .loading-state li > span { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: #efede8; font-size: 10px; font-weight: 800; }
@@ -362,7 +369,7 @@
 .workspace-state { min-height: 220px; padding: 38px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .state-mark { width: 44px; height: 44px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 50%; background: #efebe3; color: var(--navy-700); font: 500 23px/1 Georgia, serif; }
 .workspace-state p { max-width: 530px; margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
-.workspace-state--backend-error .state-mark, .workspace-state--generation-error .state-mark { background: var(--accent-soft); color: var(--accent); }
+.workspace-state--backend-error .state-mark, .workspace-state--generation-error .state-mark, .workspace-state--verification-error .state-mark { background: var(--accent-soft); color: var(--accent); }
 
 @keyframes loading-slide { from { transform: translateX(-15%); } to { transform: translateX(125%); } }
 
@@ -394,7 +401,7 @@
   .sidebar { display: none; }
   .research-main { padding: 23px 15px 36px; }
   .research-heading { display: block; }
-  .mock-label { display: inline-block; margin-top: 11px; }
+  .environment-label { display: inline-block; margin-top: 11px; }
   .filter-bar { grid-template-columns: 1fr 1fr; }
   .filter-bar__case { grid-column: 1 / -1; }
   .query-card__footer { align-items: flex-end; gap: 12px; }

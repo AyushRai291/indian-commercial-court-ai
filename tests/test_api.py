@@ -8,11 +8,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from legal_rag.api.app import SERVICE_UNAVAILABLE_DETAIL, create_app
+from legal_rag.api.schemas import SearchResponse
 from legal_rag.api.service import (
     BM25_CANDIDATE_DEPTH,
     DENSE_CANDIDATE_DEPTH,
+    MODEL_WARMUP_QUERY,
     RERANKER_CANDIDATE_DEPTH,
     RRF_K,
+    ModelWarmupResult,
     SearchService,
 )
 from legal_rag.retrieval import (
@@ -237,6 +240,49 @@ def test_health_returns_process_liveness_without_running_search(
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert api_harness.all_calls == []
+
+
+def test_model_warmup_loads_local_models_without_search_or_storage_access() -> None:
+    bm25 = _CapturingBasicRetriever()
+    dense = _CapturingBasicRetriever()
+    hybrid = _CapturingHybridRetriever()
+    reranker = _CapturingReranker()
+    embedding_calls: list[str] = []
+    reranker_calls: list[tuple[list[tuple[str, str]], int]] = []
+
+    class _EmbeddingProvider:
+        def embed_query(self, query: str) -> list[float]:
+            embedding_calls.append(query)
+            return [0.0, 1.0]
+
+    class _Scorer:
+        def score_pairs(
+            self,
+            pairs: list[tuple[str, str]],
+            *,
+            batch_size: int,
+        ) -> object:
+            reranker_calls.append((pairs, batch_size))
+            return object()
+
+    dense.embedding_provider = _EmbeddingProvider()
+    reranker.scorer = _Scorer()
+    service = SearchService(bm25, dense, hybrid, reranker)
+
+    result = service.warmup()
+
+    assert isinstance(result, ModelWarmupResult)
+    assert embedding_calls == [MODEL_WARMUP_QUERY]
+    assert reranker_calls == [
+        ([(MODEL_WARMUP_QUERY, MODEL_WARMUP_QUERY)], 1)
+    ]
+    assert result.dense_ms >= 0
+    assert result.reranker_ms >= 0
+    assert result.total_ms >= result.dense_ms
+    assert bm25.calls == []
+    assert dense.calls == []
+    assert hybrid.calls == []
+    assert reranker.calls == []
 
 
 @pytest.mark.parametrize(
@@ -571,6 +617,73 @@ def test_failed_service_initialization_keeps_health_live_and_search_unavailable(
     assert search_response.status_code == 503
     assert search_response.json() == {"detail": SERVICE_UNAVAILABLE_DETAIL}
     assert "private connection data" not in search_response.text
+
+
+def test_owned_service_is_warmed_before_requests_and_closed_after_shutdown() -> None:
+    class _OwnedService:
+        warmed = False
+        closed = False
+
+        def warmup(self) -> ModelWarmupResult:
+            self.warmed = True
+            return ModelWarmupResult(dense_ms=2.0, reranker_ms=3.0, total_ms=5.0)
+
+        def search(self, request: Any) -> Any:
+            assert self.warmed is True
+            return SearchResponse(
+                query=request.query,
+                retrieval_mode=request.retrieval_mode,
+                top_k=request.top_k,
+                filters=request.filters,
+                result_count=0,
+                latency_ms=0.0,
+                results=[],
+            )
+
+        def close(self) -> None:
+            self.closed = True
+
+    service = _OwnedService()
+    application = create_app(service_factory=lambda: service)  # type: ignore[arg-type]
+
+    with TestClient(application) as client:
+        response = client.post("/search", json={"query": "arbitration"})
+        assert application.state.search_service_ready is True
+        assert application.state.model_warmup.total_ms == 5.0
+        assert application.state.search_startup_ms >= 0
+
+    assert response.status_code == 200
+    assert service.closed is True
+
+
+def test_warmup_failure_keeps_dependencies_unavailable_and_closes_service() -> None:
+    private_detail = "private local model cache path"
+
+    class _FailingWarmupService:
+        closed = False
+
+        def warmup(self) -> ModelWarmupResult:
+            raise RuntimeError(private_detail)
+
+        def search(self, *_args: Any, **_kwargs: Any) -> Any:
+            raise AssertionError("failed warmup service must not be request-visible")
+
+        def close(self) -> None:
+            self.closed = True
+
+    service = _FailingWarmupService()
+    application = create_app(service_factory=lambda: service)  # type: ignore[arg-type]
+
+    with TestClient(application) as client:
+        health_response = client.get("/health")
+        search_response = client.post("/search", json={"query": "arbitration"})
+
+    assert health_response.status_code == 200
+    assert search_response.status_code == 503
+    assert search_response.json() == {"detail": SERVICE_UNAVAILABLE_DETAIL}
+    assert private_detail not in search_response.text
+    assert application.state.search_service_ready is False
+    assert service.closed is True
 
 
 def test_response_preserves_exact_canonical_metadata_and_source_provenance(

@@ -19,8 +19,9 @@ from legal_rag.generation.prompt import (
     build_grounded_prompt,
 )
 from legal_rag.generation.provider import (
+    GeminiProvider,
     GroundedAnswerProvider,
-    OpenAIResponsesProvider,
+    StructuredLLMProvider,
 )
 from legal_rag.generation.service import (
     NO_EVIDENCE_ANSWER,
@@ -34,13 +35,14 @@ __all__ = [
     "EVIDENCE_END_DELIMITER",
     "EVIDENCE_START_DELIMITER",
     "GenerationError",
+    "GeminiProvider",
     "GroundedAnswerProvider",
     "GroundedModelOutput",
     "GroundedPrompt",
     "MalformedModelResponseError",
     "NO_EVIDENCE_ANSWER",
-    "OpenAIResponsesProvider",
     "ProviderUnavailableError",
+    "StructuredLLMProvider",
     "SYSTEM_PROMPT",
     "assign_evidence_ids",
     "build_answer_service",

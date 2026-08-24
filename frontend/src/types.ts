@@ -47,7 +47,41 @@ export interface VerificationSummary {
   unsupported: number
 }
 
-// Mirrors the standalone Day 15 POST /verify response contract.
+export interface ResearchRequestFilters {
+  court?: string
+  year?: number
+  case_number?: string
+}
+
+export interface ResearchRequest {
+  query: string
+  top_k: number
+  filters: ResearchRequestFilters
+}
+
+export type VerificationState = 'complete' | 'not_run' | 'unavailable'
+
+export interface ResearchLatency {
+  retrieval_ms: number
+  generation_ms: number
+  verification_ms: number
+  total_ms: number
+}
+
+// Live POST /research response contract.
+export interface ResearchResponse {
+  query: string
+  answer: string
+  used_evidence_ids: string[]
+  evidence: EvidenceItem[]
+  claims: VerifiedClaim[]
+  verification_summary: VerificationSummary | null
+  verification_state: VerificationState
+  verification_error?: string | null
+  latency: ResearchLatency
+}
+
+// Legacy fixture shape retained for isolated component/test data.
 export interface VerificationResponse {
   claims: VerifiedClaim[]
   summary: VerificationSummary
@@ -56,7 +90,7 @@ export interface VerificationResponse {
   total_latency_ms: number
 }
 
-// Presentation-only pairing of the separate /answer and /verify responses.
+// Test/development fixture pairing; runtime research does not use this type.
 export interface VerifiedResearchFixture {
   answer: AnswerResponse
   verification: VerificationResponse
@@ -75,3 +109,4 @@ export type WorkspaceView =
   | 'no-results'
   | 'backend-error'
   | 'generation-error'
+  | 'verification-error'

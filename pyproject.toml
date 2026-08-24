@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "legal-rag-corpus"
 version = "0.1.0"
-description = "Corpus foundation for an Indian Commercial Court legal RAG system"
+description = "End-to-end Indian Commercial Court legal research RAG system"
 requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.13,<2.0",
     "fastapi>=0.115,<1.0",
     "httpx>=0.27,<1.0",
-    "openai>=2.0,<3.0",
+    "google-genai>=2.19,<3.0",
     "psycopg[binary]>=3.1,<4.0",
     "pypdf>=5.0,<7.0",
     "qdrant-client>=1.14,<1.16",

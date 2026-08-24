@@ -27,8 +27,8 @@ from legal_rag.generation.evidence import (
 from legal_rag.generation.models import GroundedModelOutput
 from legal_rag.generation.prompt import build_grounded_prompt
 from legal_rag.generation.provider import (
+    GeminiProvider,
     GroundedAnswerProvider,
-    OpenAIResponsesProvider,
 )
 
 
@@ -119,9 +119,9 @@ def build_answer_service(
     """Compose the single configured provider without requiring a key at boot."""
 
     runtime_settings = settings or get_settings()
-    provider = OpenAIResponsesProvider(
-        api_key=runtime_settings.openai_api_key,
-        model=runtime_settings.openai_model,
-        timeout_seconds=runtime_settings.openai_timeout_seconds,
+    provider = GeminiProvider(
+        api_key=runtime_settings.gemini_api_key,
+        model=runtime_settings.gemini_model,
+        timeout_seconds=runtime_settings.gemini_timeout_seconds,
     )
     return AnswerService(search_service, provider)

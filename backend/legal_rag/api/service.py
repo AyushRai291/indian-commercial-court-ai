@@ -36,6 +36,16 @@ BM25_CANDIDATE_DEPTH = DEFAULT_CANDIDATE_DEPTH
 DENSE_CANDIDATE_DEPTH = DEFAULT_CANDIDATE_DEPTH
 RRF_K = DEFAULT_RRF_K
 RERANKER_CANDIDATE_DEPTH = DEFAULT_RERANKER_CANDIDATE_K
+MODEL_WARMUP_QUERY = "Indian commercial court legal research"
+
+
+@dataclass(frozen=True, slots=True)
+class ModelWarmupResult:
+    """Mutation-free local-model startup timings in milliseconds."""
+
+    dense_ms: float
+    reranker_ms: float
+    total_ms: float
 
 
 class BasicRetriever(Protocol):
@@ -89,6 +99,38 @@ class SearchService:
     dense_retriever: BasicRetriever
     hybrid_retriever: HybridRetriever
     reranker: RerankedRetriever
+
+    def warmup(self) -> ModelWarmupResult:
+        """Load both local ML models without querying or mutating storage."""
+
+        total_started = perf_counter()
+        embedding_provider = getattr(
+            self.dense_retriever,
+            "embedding_provider",
+            None,
+        )
+        embed_query = getattr(embedding_provider, "embed_query", None)
+        if not callable(embed_query):
+            raise RuntimeError("dense embedding provider cannot be warmed")
+        dense_started = perf_counter()
+        embed_query(MODEL_WARMUP_QUERY)
+        dense_ms = (perf_counter() - dense_started) * 1000.0
+
+        scorer = getattr(self.reranker, "scorer", None)
+        score_pairs = getattr(scorer, "score_pairs", None)
+        if not callable(score_pairs):
+            raise RuntimeError("cross-encoder scorer cannot be warmed")
+        reranker_started = perf_counter()
+        score_pairs(
+            [(MODEL_WARMUP_QUERY, MODEL_WARMUP_QUERY)],
+            batch_size=1,
+        )
+        reranker_ms = (perf_counter() - reranker_started) * 1000.0
+        return ModelWarmupResult(
+            dense_ms=dense_ms,
+            reranker_ms=reranker_ms,
+            total_ms=(perf_counter() - total_started) * 1000.0,
+        )
 
     def search(self, request: SearchRequest) -> SearchResponse:
         """Execute the selected existing retriever and serialize its evidence."""
@@ -157,7 +199,7 @@ class SearchService:
 
 
 def build_search_service(settings: Settings | None = None) -> SearchService:
-    """Compose the existing retrievers once without eagerly loading ML models."""
+    """Compose the existing retrievers; the API lifespan performs warmup."""
 
     runtime_settings = settings or get_settings()
     session_factory = get_session_factory(get_engine(runtime_settings.database_url))
