@@ -1,7 +1,11 @@
-import type { EvidenceItem } from '../types'
+import type { EvidenceItem, VerifiedClaim } from '../types'
+import { StatusBadge } from './StatusBadge'
 
 interface EvidencePanelProps {
   evidence: EvidenceItem | null
+  claims: VerifiedClaim[]
+  selectedClaim: VerifiedClaim | null
+  onSelectClaim: (claimId: string) => void
 }
 
 function formatDate(value: string | null) {
@@ -17,23 +21,42 @@ function formatScore(value: number | null) {
   return value === null ? 'Unavailable' : value.toFixed(3)
 }
 
-export function EvidencePanel({ evidence }: EvidencePanelProps) {
+export function EvidencePanel({
+  evidence,
+  claims,
+  selectedClaim,
+  onSelectClaim,
+}: EvidencePanelProps) {
   if (!evidence) {
     return (
-      <aside className="evidence-panel evidence-panel--empty" id="evidence-panel">
+      <aside
+        className="evidence-panel evidence-panel--empty"
+        id="evidence-panel"
+        aria-label="Selected judgment evidence"
+      >
         <span className="eyebrow">Evidence workspace</span>
-        <h2>Select a cited paragraph</h2>
-        <p>Citations and ranked cards open the exact judgment evidence here.</p>
+        <h2>{selectedClaim ? `No cited evidence for ${selectedClaim.claim_id}` : 'Select a cited paragraph'}</h2>
+        {selectedClaim ? (
+          <>
+            <StatusBadge status={selectedClaim.status} />
+            <p>{selectedClaim.reason}</p>
+          </>
+        ) : (
+          <p>Citations and ranked cards open the exact judgment evidence here.</p>
+        )}
       </aside>
     )
   }
+
+  const citingClaims = claims.filter((claim) =>
+    claim.citation_ids.includes(evidence.evidence_id),
+  )
 
   return (
     <aside
       className="evidence-panel"
       id="evidence-panel"
       aria-label="Selected judgment evidence"
-      aria-live="polite"
     >
       <div className="evidence-panel__header">
         <div>
@@ -42,6 +65,32 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
         </div>
         <span className="rank-pill">Rank {evidence.reranked_rank}</span>
       </div>
+
+      <section className="evidence-relationships" aria-labelledby="relationship-title">
+        <div className="evidence-relationships__heading">
+          <span className="eyebrow">Claim relationship</span>
+          <h3 id="relationship-title">
+            Cited by {citingClaims.length} {citingClaims.length === 1 ? 'claim' : 'claims'}
+          </h3>
+        </div>
+        <div className="relationship-list">
+          {citingClaims.map((claim) => (
+            <button
+              className="relationship-item"
+              type="button"
+              key={claim.claim_id}
+              aria-pressed={selectedClaim?.claim_id === claim.claim_id}
+              onClick={() => onSelectClaim(claim.claim_id)}
+            >
+              <span className="relationship-item__topline">
+                <strong>{claim.claim_id}</strong>
+                <StatusBadge status={claim.status} />
+              </span>
+              <span className="relationship-item__reason">{claim.reason}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className="case-heading">
         <p className="case-heading__court">{evidence.court ?? 'Court unavailable'}</p>
@@ -66,7 +115,7 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
       </div>
 
       <details className="retrieval-details">
-        <summary>Retrieval metadata</summary>
+        <summary>Technical provenance and retrieval scores</summary>
         <dl>
           <div><dt>Paragraph UID</dt><dd>{evidence.paragraph_uid}</dd></div>
           <div><dt>BM25 rank / score</dt><dd>{evidence.bm25_rank ?? '—'} / {formatScore(evidence.bm25_score)}</dd></div>
@@ -86,7 +135,7 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
           rel="noopener noreferrer"
           aria-label={`Open source judgment for ${evidence.case_name}`}
         >
-          View source judgment <span aria-hidden="true">↗</span>
+          Open source judgment <span aria-hidden="true">↗</span>
         </a>
       ) : null}
     </aside>

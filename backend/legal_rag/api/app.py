@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for paragraph search and grounded answers."""
+"""FastAPI entrypoint for search, grounded answers, and verification."""
 
 from __future__ import annotations
 
@@ -16,14 +16,30 @@ from legal_rag.api.schemas import (
     HealthResponse,
     SearchRequest,
     SearchResponse,
+    VerifyRequest,
+    VerifyResponse,
 )
 from legal_rag.api.service import SearchService, build_search_service
 from legal_rag.generation import AnswerService, build_answer_service
+from legal_rag.verification.errors import (
+    InvalidVerificationRequestError,
+    VerificationError,
+)
+from legal_rag.verification.service import (
+    VerificationService,
+    build_verification_service,
+)
 
 
 logger = logging.getLogger(__name__)
 SERVICE_UNAVAILABLE_DETAIL = "Search service is temporarily unavailable."
 GENERATION_UNAVAILABLE_DETAIL = "Answer generation is temporarily unavailable."
+VERIFICATION_INVALID_DETAIL = (
+    "Verification payload failed citation validation."
+)
+VERIFICATION_UNAVAILABLE_DETAIL = (
+    "Citation verification is temporarily unavailable."
+)
 
 
 class SearchExecutor(Protocol):
@@ -38,13 +54,23 @@ class AnswerExecutor(Protocol):
     def answer(self, request: AnswerRequest) -> AnswerResponse: ...
 
 
+class VerificationExecutor(Protocol):
+    """Injectable claim-verification boundary used by API tests."""
+
+    def verify(self, request: VerifyRequest) -> VerifyResponse: ...
+
+
 def create_app(
     *,
     search_service: SearchExecutor | None = None,
     answer_service: AnswerExecutor | None = None,
+    verification_service: VerificationExecutor | None = None,
     service_factory: Callable[[], SearchService] = build_search_service,
     answer_service_factory: Callable[[SearchExecutor], AnswerService] = (
         build_answer_service
+    ),
+    verification_service_factory: Callable[[], VerificationService] = (
+        build_verification_service
     ),
 ) -> FastAPI:
     """Create the application with optional prebuilt service boundaries."""
@@ -53,8 +79,10 @@ def create_app(
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         owned_service: SearchService | None = None
         owned_answer_service: AnswerService | None = None
+        owned_verification_service: VerificationService | None = None
         application.state.search_service = search_service
         application.state.answer_service = answer_service
+        application.state.verification_service = verification_service
         application.state.search_service_ready = search_service is not None
         if search_service is None:
             try:
@@ -73,9 +101,21 @@ def create_app(
                 application.state.answer_service = owned_answer_service
             except Exception:
                 logger.exception("Answer service initialization failed")
+        if verification_service is None:
+            try:
+                owned_verification_service = await run_in_threadpool(
+                    verification_service_factory
+                )
+                application.state.verification_service = (
+                    owned_verification_service
+                )
+            except Exception:
+                logger.exception("Verification service initialization failed")
         try:
             yield
         finally:
+            if owned_verification_service is not None:
+                await run_in_threadpool(owned_verification_service.close)
             if owned_answer_service is not None:
                 await run_in_threadpool(owned_answer_service.close)
             if owned_service is not None:
@@ -102,6 +142,15 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=GENERATION_UNAVAILABLE_DETAIL,
+            )
+        return service
+
+    def get_verification_service(request: Request) -> VerificationExecutor:
+        service = getattr(request.app.state, "verification_service", None)
+        if service is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=VERIFICATION_UNAVAILABLE_DETAIL,
             )
         return service
 
@@ -138,6 +187,31 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=GENERATION_UNAVAILABLE_DETAIL,
+            ) from None
+
+    @application.post("/verify", response_model=VerifyResponse)
+    async def verify(
+        verify_request: VerifyRequest,
+        service: VerificationExecutor = Depends(get_verification_service),
+    ) -> VerifyResponse:
+        try:
+            return await run_in_threadpool(service.verify, verify_request)
+        except InvalidVerificationRequestError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=VERIFICATION_INVALID_DETAIL,
+            ) from None
+        except VerificationError:
+            logger.warning("Claim-level citation verification unavailable")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=VERIFICATION_UNAVAILABLE_DETAIL,
+            ) from None
+        except Exception:
+            logger.exception("Claim-level citation verification failed")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=VERIFICATION_UNAVAILABLE_DETAIL,
             ) from None
 
     return application

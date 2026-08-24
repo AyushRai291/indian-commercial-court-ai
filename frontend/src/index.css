@@ -17,6 +17,11 @@
   --accent-dark: #6f372d;
   --accent-soft: #f4e7e2;
   --positive: #45725a;
+  --positive-soft: #e7f0ea;
+  --warning: #8a6322;
+  --warning-soft: #f7eedc;
+  --danger: #8b3e3a;
+  --danger-soft: #f6e8e6;
 }
 
 * { box-sizing: border-box; }

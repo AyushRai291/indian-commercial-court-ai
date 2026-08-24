@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { arbitratorAnswer, commercialWisdomAnswer, mockAnswers } from '../mocks/answerResponses'
-import type { AnswerResponse, SearchFilters, WorkspaceView } from '../types'
+import {
+  arbitratorResearch,
+  commercialWisdomResearch,
+  mockResearchResults,
+} from '../mocks/answerResponses'
+import type { SearchFilters, VerifiedResearchFixture, WorkspaceView } from '../types'
 import { EvidenceList } from './EvidenceList'
 import { EvidencePanel } from './EvidencePanel'
 import { GroundedAnswer } from './GroundedAnswer'
@@ -18,10 +22,11 @@ const defaultFilters: SearchFilters = {
 }
 
 export function ResearchWorkspace() {
-  const [query, setQuery] = useState(arbitratorAnswer.query)
+  const [query, setQuery] = useState(arbitratorResearch.answer.query)
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters)
   const [view, setView] = useState<WorkspaceView>('result')
-  const [activeResponse, setActiveResponse] = useState<AnswerResponse>(arbitratorAnswer)
+  const [activeResult, setActiveResult] = useState<VerifiedResearchFixture>(arbitratorResearch)
+  const [selectedClaimId, setSelectedClaimId] = useState('C1')
   const [selectedEvidenceId, setSelectedEvidenceId] = useState('E1')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [loadingStage, setLoadingStage] = useState(0)
@@ -32,23 +37,35 @@ export function ResearchWorkspace() {
   const selectedEvidence = useMemo(
     () =>
       view === 'result'
-        ? activeResponse.evidence.find((item) => item.evidence_id === selectedEvidenceId) ??
-          activeResponse.evidence[0] ??
+        ? activeResult.answer.evidence.find((item) => item.evidence_id === selectedEvidenceId) ??
           null
         : null,
-    [activeResponse, selectedEvidenceId, view],
+    [activeResult, selectedEvidenceId, view],
   )
+
+  const selectedClaim = useMemo(
+    () =>
+      view === 'result'
+        ? activeResult.verification.claims.find((claim) => claim.claim_id === selectedClaimId) ??
+          null
+        : null,
+    [activeResult, selectedClaimId, view],
+  )
+
+  const highlightedEvidenceIds = selectedClaim?.citation_ids ?? []
 
   function clearTimers() {
     timers.current.forEach(clearTimeout)
     timers.current = []
   }
 
-  function showExample(response: AnswerResponse) {
+  function showExample(result: VerifiedResearchFixture) {
     clearTimers()
-    setQuery(response.query)
-    setActiveResponse(response)
-    setSelectedEvidenceId(response.evidence[0]?.evidence_id ?? '')
+    const firstClaim = result.verification.claims[0]
+    setQuery(result.answer.query)
+    setActiveResult(result)
+    setSelectedClaimId(firstClaim?.claim_id ?? '')
+    setSelectedEvidenceId(firstClaim?.citation_ids[0] ?? result.answer.evidence[0]?.evidence_id ?? '')
     setValidationError(null)
     setView('result')
   }
@@ -58,6 +75,7 @@ export function ResearchWorkspace() {
     setQuery('')
     setFilters(defaultFilters)
     setValidationError(null)
+    setSelectedClaimId('')
     setSelectedEvidenceId('')
     setView('empty')
   }
@@ -78,32 +96,60 @@ export function ResearchWorkspace() {
     timers.current = [
       setTimeout(() => setLoadingStage(1), 350),
       setTimeout(() => setLoadingStage(2), 700),
+      setTimeout(() => setLoadingStage(3), 950),
       setTimeout(() => {
         const lowered = normalizedQuery.toLowerCase()
-        const response = lowered.includes('commercial wisdom') || lowered.includes('creditor')
-          ? commercialWisdomAnswer
+        const result = lowered.includes('commercial wisdom') || lowered.includes('creditor')
+          ? commercialWisdomResearch
           : lowered.includes('arbitrator') || lowered.includes('appointment')
-            ? arbitratorAnswer
+            ? arbitratorResearch
             : null
 
-        if (!response) {
+        if (!result) {
+          setSelectedClaimId('')
           setSelectedEvidenceId('')
           setView('no-results')
           return
         }
 
-        setActiveResponse(response)
-        setSelectedEvidenceId(response.evidence[0]?.evidence_id ?? '')
+        const firstClaim = result.verification.claims[0]
+        setActiveResult(result)
+        setSelectedClaimId(firstClaim?.claim_id ?? '')
+        setSelectedEvidenceId(firstClaim?.citation_ids[0] ?? result.answer.evidence[0]?.evidence_id ?? '')
         setView('result')
-      }, 1100),
+      }, 1250),
     ]
+  }
+
+  function selectClaim(claimId: string) {
+    const claim = activeResult.verification.claims.find((item) => item.claim_id === claimId)
+    if (!claim) return
+    setSelectedClaimId(claimId)
+    setSelectedEvidenceId(claim.citation_ids[0] ?? '')
+  }
+
+  function selectClaimEvidence(claimId: string, evidenceId: string) {
+    setSelectedClaimId(claimId)
+    setSelectedEvidenceId(evidenceId)
+  }
+
+  function selectEvidence(evidenceId: string) {
+    const currentClaim = activeResult.verification.claims.find(
+      (claim) => claim.claim_id === selectedClaimId,
+    )
+    const relatedClaim = currentClaim?.citation_ids.includes(evidenceId)
+      ? currentClaim
+      : activeResult.verification.claims.find((claim) => claim.citation_ids.includes(evidenceId))
+
+    if (relatedClaim) setSelectedClaimId(relatedClaim.claim_id)
+    setSelectedEvidenceId(evidenceId)
   }
 
   return (
     <div className="workspace-shell">
       <TopBar />
       <Sidebar
-        examples={mockAnswers}
+        examples={mockResearchResults}
         onNewResearch={startNewResearch}
         onSelectExample={showExample}
       />
@@ -113,7 +159,7 @@ export function ResearchWorkspace() {
           <div>
             <span className="eyebrow">Indian commercial law</span>
             <h1>Ask the judgment corpus</h1>
-            <p>Move from a focused legal question to the exact supporting paragraph.</p>
+            <p>Trace every material claim to its citation, exact paragraph, and verification status.</p>
           </div>
           <span className="mock-label">Static demo data</span>
         </div>
@@ -130,18 +176,31 @@ export function ResearchWorkspace() {
         {view === 'loading' ? <LoadingState activeStage={loadingStage} /> : null}
         {view === 'result' ? (
           <>
-            <GroundedAnswer response={activeResponse} onSelectEvidence={setSelectedEvidenceId} />
-            <EvidenceList
-              evidence={activeResponse.evidence}
+            <GroundedAnswer
+              response={activeResult.answer}
+              verification={activeResult.verification}
+              selectedClaimId={selectedClaimId}
               selectedEvidenceId={selectedEvidenceId}
-              onSelectEvidence={setSelectedEvidenceId}
+              onSelectClaim={selectClaim}
+              onSelectEvidence={selectClaimEvidence}
+            />
+            <EvidenceList
+              evidence={activeResult.answer.evidence}
+              selectedEvidenceId={selectedEvidenceId}
+              highlightedEvidenceIds={highlightedEvidenceIds}
+              onSelectEvidence={selectEvidence}
             />
           </>
         ) : null}
         {view !== 'loading' && view !== 'result' ? <WorkspaceState view={view} /> : null}
       </main>
 
-      <EvidencePanel evidence={selectedEvidence} />
+      <EvidencePanel
+        evidence={selectedEvidence}
+        claims={activeResult.verification.claims}
+        selectedClaim={selectedClaim}
+        onSelectClaim={selectClaim}
+      />
     </div>
   )
 }

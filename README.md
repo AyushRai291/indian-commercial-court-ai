@@ -5,9 +5,9 @@ for an Indian Commercial Court legal RAG system. It normalizes heterogeneous
 judgment records, stores cases and paragraphs in PostgreSQL, indexes paragraph
 embeddings in Qdrant, and can generate answers over request-local reranked evidence.
 
-The Day 14 frontend is a presentation shell driven by clearly labelled static mock
-responses. Live frontend/API integration, claim-level citation verification,
-LangChain, OpenSearch, OCR, and authentication remain out of scope.
+The Day 15 frontend is a presentation shell driven by clearly labelled static mock
+answer and verification responses. Live frontend/API orchestration, automatic
+answer repair, LangChain, OpenSearch, OCR, and authentication remain out of scope.
 
 ## Repository layout
 
@@ -28,6 +28,7 @@ backend/legal_rag/
   vector/                   Qdrant paragraph index adapter
   api/                      FastAPI schemas, shared retrieval service, and app
   generation/               Evidence IDs, grounded prompt, provider, and answer service
+  verification/             Claim extraction, cited-evidence verifier, and result assembly
 frontend/                   React/Vite legal-research presentation shell
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
@@ -95,7 +96,7 @@ example:
 $env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
 ```
 
-## Search and grounded-answer API
+## Search, grounded-answer, and verification API
 
 Start the API after PostgreSQL and Qdrant are healthy and the package is installed:
 
@@ -166,6 +167,7 @@ real key:
 ```powershell
 $env:OPENAI_API_KEY = "your-key"
 $env:OPENAI_MODEL = "gpt-5-mini"       # optional default
+$env:OPENAI_VERIFIER_MODEL = ""        # optional; falls back to OPENAI_MODEL
 $env:OPENAI_TIMEOUT_SECONDS = "60"     # optional default
 ```
 
@@ -210,18 +212,78 @@ The response shape is:
 }
 ```
 
-The provider uses a structured output contract and the API rejects unknown or
-malformed evidence IDs and mismatches between inline citations and
-`used_evidence_ids`. These are structural integrity checks only: Day 14 does not
-classify claims as supported, partial, or unsupported. With zero retrieved
+The generation provider uses a structured output contract and the API rejects
+unknown or malformed evidence IDs and mismatches between inline citations and
+`used_evidence_ids`. These are structural integrity checks. With zero retrieved
 evidence, the provider is skipped and a deterministic insufficiency response is
 returned.
 
-## Frontend presentation shell
+`POST /verify` is a separate Day 15 service: it does not retrieve, regenerate, or
+rewrite an answer. It deterministically extracts ordered material claims from an
+existing answer, attaches only the citations written with each claim, and sends
+all cited claims in one bounded structured-output request. Within that batch,
+each claim entry contains only its own cited evidence paragraphs. An uncited material
+claim bypasses the model and is deterministically marked `UNSUPPORTED`.
+
+Example request using evidence returned by `/answer`:
+
+```json
+{
+  "answer": "An ineligible arbitrator cannot nominate another arbitrator. [E1]",
+  "used_evidence_ids": ["E1"],
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "paragraph_uid": "...",
+      "text": "...",
+      "case_id": 1,
+      "case_name": "...",
+      "case_number": "...",
+      "court": "Supreme Court of India",
+      "judgment_date": "2017-07-03",
+      "source_url": "...",
+      "paragraph_number": 84,
+      "page_number": 33,
+      "reranked_rank": 1
+    }
+  ]
+}
+```
+
+The response retains claim and evidence identity:
+
+```json
+{
+  "claims": [
+    {
+      "claim_id": "C1",
+      "claim": "An ineligible arbitrator cannot nominate another arbitrator.",
+      "citation_ids": ["E1"],
+      "status": "SUPPORTED",
+      "reason": "E1 directly supports the material proposition.",
+      "evidence_uids": ["..."]
+    }
+  ],
+  "summary": {"supported": 1, "partial": 0, "unsupported": 0},
+  "claim_extraction_latency_ms": 0,
+  "verification_latency_ms": 0,
+  "total_latency_ms": 0
+}
+```
+
+`SUPPORTED` means the cited paragraph directly supports the material substance;
+`PARTIAL` means it supports only part or is narrower/differently qualified; and
+`UNSUPPORTED` means the claim is uncited, contradicted, irrelevant, or introduces
+material absent from the cited paragraph. This is semantic citation-support
+classification, not proof that an answer is legally correct. The verifier is
+itself model-based and can make mistakes; its concise reason and exact evidence
+remain visible for human review.
+
+## Frontend citation-verification shell
 
 The desktop-first legal research workspace currently uses API-shaped fixtures in
-`frontend/src/mocks/`; it does not call `/answer` or write demo records to the
-corpus. Run it with:
+`frontend/src/mocks/`; it does not call `/answer` or `/verify`, and it does not
+write demo records to the corpus. Run it with:
 
 ```powershell
 Set-Location frontend
@@ -229,9 +291,13 @@ npm install
 npm run dev
 ```
 
-The shell includes search and filter controls, a grounded-answer view, clickable
-`[E1]` citations, ranked evidence cards, a full-provenance evidence panel, and
-loading, empty, no-result, backend-error, and generation-error states.
+The shell presents each material claim with clickable `[E1]` citations and an
+explicit `SUPPORTED`, `PARTIAL`, or `UNSUPPORTED` label. Claim selection
+highlights every cited evidence item, opens the exact paragraph, updates a compact
+verifier explanation, and shows the evidence-to-claim relationship in the
+full-provenance rail. Summary counts and a collapsible production-path reveal are
+included without a confidence percentage or hidden model reasoning. Loading,
+empty, no-result, backend-error, and generation-error states remain available.
 
 ## Database migrations
 

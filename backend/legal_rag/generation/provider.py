@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from openai import OpenAI
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from legal_rag.generation.errors import (
     MalformedModelResponseError,
@@ -21,6 +21,9 @@ class GroundedAnswerProvider(Protocol):
     def generate(self, prompt: GroundedPrompt) -> GroundedModelOutput: ...
 
 
+StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
+
+
 @dataclass(slots=True)
 class OpenAIResponsesProvider:
     """Generate a Pydantic-validated payload through the Responses API."""
@@ -31,6 +34,15 @@ class OpenAIResponsesProvider:
     _client: Any | None = field(default=None, init=False, repr=False)
 
     def generate(self, prompt: GroundedPrompt) -> GroundedModelOutput:
+        return self.parse(prompt, GroundedModelOutput)
+
+    def parse(
+        self,
+        prompt: GroundedPrompt,
+        output_type: type[StructuredOutput],
+    ) -> StructuredOutput:
+        """Return one schema-validated Responses API payload."""
+
         if not self.api_key:
             raise ProviderUnavailableError("OpenAI API key is not configured")
 
@@ -42,7 +54,7 @@ class OpenAIResponsesProvider:
                     {"role": "system", "content": prompt.system_prompt},
                     {"role": "user", "content": prompt.user_prompt},
                 ],
-                text_format=GroundedModelOutput,
+                text_format=output_type,
             )
         except ValidationError as exc:
             raise MalformedModelResponseError(
@@ -54,7 +66,7 @@ class OpenAIResponsesProvider:
             raise ProviderUnavailableError("OpenAI response request failed") from exc
 
         parsed = response.output_parsed
-        if not isinstance(parsed, GroundedModelOutput):
+        if not isinstance(parsed, output_type):
             raise MalformedModelResponseError(
                 "provider returned no parsed structured output"
             )

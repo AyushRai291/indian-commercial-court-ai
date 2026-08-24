@@ -30,6 +30,38 @@ export interface AnswerResponse {
   total_latency_ms: number
 }
 
+export type VerificationStatus = 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED'
+
+export interface VerifiedClaim {
+  claim_id: string
+  claim: string
+  citation_ids: string[]
+  status: VerificationStatus
+  reason: string
+  evidence_uids: string[]
+}
+
+export interface VerificationSummary {
+  supported: number
+  partial: number
+  unsupported: number
+}
+
+// Mirrors the standalone Day 15 POST /verify response contract.
+export interface VerificationResponse {
+  claims: VerifiedClaim[]
+  summary: VerificationSummary
+  claim_extraction_latency_ms: number
+  verification_latency_ms: number
+  total_latency_ms: number
+}
+
+// Presentation-only pairing of the separate /answer and /verify responses.
+export interface VerifiedResearchFixture {
+  answer: AnswerResponse
+  verification: VerificationResponse
+}
+
 export interface SearchFilters {
   court: string
   year: string

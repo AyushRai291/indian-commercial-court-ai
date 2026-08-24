@@ -70,6 +70,7 @@ class Settings:
     reranker_top_k: int = DEFAULT_RERANKER_TOP_K
     openai_api_key: str | None = None
     openai_model: str = DEFAULT_OPENAI_MODEL
+    openai_verifier_model: str | None = None
     openai_timeout_seconds: float = DEFAULT_OPENAI_TIMEOUT_SECONDS
 
     @classmethod
@@ -107,6 +108,9 @@ class Settings:
             ),
             openai_api_key=os.getenv("OPENAI_API_KEY") or None,
             openai_model=os.getenv("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL,
+            openai_verifier_model=(
+                os.getenv("OPENAI_VERIFIER_MODEL") or None
+            ),
             openai_timeout_seconds=_positive_float(
                 "OPENAI_TIMEOUT_SECONDS",
                 DEFAULT_OPENAI_TIMEOUT_SECONDS,

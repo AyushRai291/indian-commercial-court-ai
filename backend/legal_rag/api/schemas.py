@@ -1,4 +1,4 @@
-"""Explicit request and response contracts for search and grounded answers."""
+"""Explicit API contracts for search, answers, and citation verification."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from legal_rag.retrieval import (
     build_retrieval_filters,
     tokenize_legal_text,
 )
+from legal_rag.verification.models import VerificationStatus
 
 
 class RetrievalMode(str, Enum):
@@ -164,6 +165,59 @@ class AnswerResponse(BaseModel):
     evidence: list[AnswerEvidence]
     retrieval_latency_ms: float
     generation_latency_ms: float
+    total_latency_ms: float
+
+
+class VerifyRequest(BaseModel):
+    """Existing grounded answer and full evidence supplied for verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    answer: str = Field(min_length=1, max_length=50_000)
+    used_evidence_ids: list[str] = Field(max_length=50)
+    evidence: list[AnswerEvidence] = Field(max_length=50)
+
+    @field_validator("answer")
+    @classmethod
+    def answer_must_not_be_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("answer must not be blank")
+        return stripped
+
+
+class VerificationClaim(BaseModel):
+    """One material claim with semantic support and durable provenance."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    claim_id: str
+    claim: str
+    citation_ids: list[str]
+    status: VerificationStatus
+    reason: str
+    evidence_uids: list[str]
+
+
+class VerificationSummary(BaseModel):
+    """Transparent status counts without a synthetic confidence score."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    supported: int
+    partial: int
+    unsupported: int
+
+
+class VerifyResponse(BaseModel):
+    """Ordered claim verification plus extraction/provider timing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    claims: list[VerificationClaim]
+    summary: VerificationSummary
+    claim_extraction_latency_ms: float
+    verification_latency_ms: float
     total_latency_ms: float
 
 

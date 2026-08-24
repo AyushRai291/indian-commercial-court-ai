@@ -1,4 +1,8 @@
-import type { AnswerResponse } from '../types'
+import type {
+  AnswerResponse,
+  VerificationResponse,
+  VerifiedResearchFixture,
+} from '../types'
 
 const trfSource =
   'https://indian-supreme-court-judgments.s3.amazonaws.com/data/pdf/year=2017/english/2017_7_409_441_EN.pdf'
@@ -12,7 +16,7 @@ const essarSource =
 export const arbitratorAnswer: AnswerResponse = {
   query: 'Can an ineligible arbitrator nominate another person as arbitrator?',
   answer:
-    'Once the named arbitrator becomes ineligible by operation of law, the power attached to that office to nominate another arbitrator is also lost [E1]. Separately, a person interested in the outcome of the dispute must not hold exclusive authority to appoint the sole arbitrator [E2]. Section 12(5) permits waiver only through an express written agreement made after disputes have arisen [E3].',
+    'Once the named arbitrator becomes ineligible by operation of law, the power attached to that office to nominate another arbitrator is also lost [E1]. The rule extends from an ineligible named arbitrator to an interested decision-maker who exclusively appoints the sole arbitrator [E1][E2]. Section 12(5) permits waiver only through an express written agreement made after disputes have arisen, and that waiver is valid for all future disputes [E3]. The retrieved paragraphs establish that every prior award made under such a clause is automatically void.',
   used_evidence_ids: ['E1', 'E2', 'E3'],
   evidence: [
     {
@@ -169,4 +173,115 @@ export const commercialWisdomAnswer: AnswerResponse = {
   total_latency_ms: 2910.1,
 }
 
-export const mockAnswers = [arbitratorAnswer, commercialWisdomAnswer]
+export const arbitratorVerification: VerificationResponse = {
+  claims: [
+    {
+      claim_id: 'C1',
+      claim:
+        'Once the named arbitrator becomes ineligible by operation of law, the power attached to that office to nominate another arbitrator is also lost.',
+      citation_ids: ['E1'],
+      status: 'SUPPORTED',
+      reason:
+        'E1 directly states that statutory ineligibility removes the managing director\'s power to nominate another arbitrator.',
+      evidence_uids: ['e20665a8-c3ab-5796-bef7-f0c1f6f632f2'],
+    },
+    {
+      claim_id: 'C2',
+      claim:
+        'The rule extends from an ineligible named arbitrator to an interested decision-maker who exclusively appoints the sole arbitrator.',
+      citation_ids: ['E1', 'E2'],
+      status: 'SUPPORTED',
+      reason:
+        'E1 removes the ineligible nominee\'s appointment power, while E2 expressly bars an interested person from appointing the sole arbitrator.',
+      evidence_uids: [
+        'e20665a8-c3ab-5796-bef7-f0c1f6f632f2',
+        'c5594ba7-3d1d-5704-af9e-fa0b11af4ac2',
+      ],
+    },
+    {
+      claim_id: 'C3',
+      claim:
+        'Section 12(5) permits waiver only through an express written agreement made after disputes have arisen, and that waiver is valid for all future disputes.',
+      citation_ids: ['E3'],
+      status: 'PARTIAL',
+      reason:
+        'E3 supports an express written waiver after a dispute arises, but does not say that one waiver governs all future disputes.',
+      evidence_uids: ['a5b62777-d935-5458-8c86-8238dfe5fb99'],
+    },
+    {
+      claim_id: 'C4',
+      claim:
+        'The retrieved paragraphs establish that every prior award made under such a clause is automatically void.',
+      citation_ids: [],
+      status: 'UNSUPPORTED',
+      reason: 'No evidence citation was attached to this material claim.',
+      evidence_uids: [],
+    },
+  ],
+  summary: {
+    supported: 2,
+    partial: 1,
+    unsupported: 1,
+  },
+  claim_extraction_latency_ms: 1.8,
+  verification_latency_ms: 1264.4,
+  total_latency_ms: 1266.2,
+}
+
+export const commercialWisdomVerification: VerificationResponse = {
+  claims: [
+    {
+      claim_id: 'C1',
+      claim:
+        'Judicial scrutiny of an approved resolution plan is confined to the statutory matters identified in Sections 30(2), 31 and 61(3) of the Insolvency and Bankruptcy Code.',
+      citation_ids: ['E1'],
+      status: 'SUPPORTED',
+      reason:
+        'E1 directly limits NCLT and NCLAT review to the identified statutory grounds.',
+      evidence_uids: ['0c3a93c4-4b64-526a-b230-af44842096eb'],
+    },
+    {
+      claim_id: 'C2',
+      claim:
+        'The NCLT and NCLAT cannot replace the commercial decision of financial creditors with their own view or exercise a general equitable jurisdiction.',
+      citation_ids: ['E1', 'E2'],
+      status: 'SUPPORTED',
+      reason:
+        'E1 excludes equity or plenary review and E2 bars reversal of creditors\' commercial wisdom.',
+      evidence_uids: [
+        '0c3a93c4-4b64-526a-b230-af44842096eb',
+        'd6f64d61-2a0c-5f51-96f7-f7fb7154d701',
+      ],
+    },
+    {
+      claim_id: 'C3',
+      claim:
+        'Review therefore does not extend to reassessing the justness or logic of the creditors\' commercial opinion.',
+      citation_ids: ['E3'],
+      status: 'SUPPORTED',
+      reason:
+        'E3 expressly says the appellate inquiry does not include scrutiny of the justness of creditors\' opinion.',
+      evidence_uids: ['903eda94-04ed-5e46-8177-ad9d00203a5e'],
+    },
+  ],
+  summary: {
+    supported: 3,
+    partial: 0,
+    unsupported: 0,
+  },
+  claim_extraction_latency_ms: 1.3,
+  verification_latency_ms: 1187.7,
+  total_latency_ms: 1189,
+}
+
+export const arbitratorResearch: VerifiedResearchFixture = {
+  answer: arbitratorAnswer,
+  verification: arbitratorVerification,
+}
+
+export const commercialWisdomResearch: VerifiedResearchFixture = {
+  answer: commercialWisdomAnswer,
+  verification: commercialWisdomVerification,
+}
+
+export const mockResearchResults = [arbitratorResearch, commercialWisdomResearch]

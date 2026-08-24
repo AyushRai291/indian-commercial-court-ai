@@ -1,9 +1,9 @@
-import type { AnswerResponse } from '../types'
+import type { VerifiedResearchFixture } from '../types'
 
 interface SidebarProps {
-  examples: AnswerResponse[]
+  examples: VerifiedResearchFixture[]
   onNewResearch: () => void
-  onSelectExample: (answer: AnswerResponse) => void
+  onSelectExample: (answer: VerifiedResearchFixture) => void
 }
 
 export function Sidebar({ examples, onNewResearch, onSelectExample }: SidebarProps) {
@@ -30,18 +30,18 @@ export function Sidebar({ examples, onNewResearch, onSelectExample }: SidebarPro
         <span className="nav-label">Demo questions</span>
         {examples.map((example) => (
           <button
-            key={example.query}
+            key={example.answer.query}
             type="button"
             onClick={() => onSelectExample(example)}
           >
-            {example.query}
+            {example.answer.query}
           </button>
         ))}
       </div>
 
       <div className="sidebar-note">
-        <span>Day 14 presentation shell</span>
-        <p>Answers and evidence on this screen are clearly marked static demo data.</p>
+        <span>Day 15 verifier preview</span>
+        <p>Answers, claim checks, and evidence are clearly marked static demo data.</p>
       </div>
     </nav>
   )

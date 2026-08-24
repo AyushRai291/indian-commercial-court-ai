@@ -1,12 +1,12 @@
 # Commercial Court Research UI
 
-Day 14 presentation shell for the Indian Commercial Court legal research
-workspace. It is a React, Vite, and TypeScript app with a desktop-first answer
-and evidence layout.
+Day 15 presentation shell for the Indian Commercial Court legal research
+workspace. It is a React, Vite, and TypeScript app with a desktop-first
+claim, citation, evidence, and verification layout.
 
-The UI currently uses clearly labelled, API-shaped static fixtures from
-`src/mocks/answerResponses.ts`. It does not call the backend or write to the
-corpus.
+The UI currently pairs clearly labelled, API-shaped `/answer` and `/verify`
+static fixtures from `src/mocks/answerResponses.ts`. It does not call the
+backend, orchestrate the two endpoints, or write to the corpus.
 
 ```powershell
 npm install

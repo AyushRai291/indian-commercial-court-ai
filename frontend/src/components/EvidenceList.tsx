@@ -4,12 +4,14 @@ import { EvidenceCard } from './EvidenceCard'
 interface EvidenceListProps {
   evidence: EvidenceItem[]
   selectedEvidenceId: string
+  highlightedEvidenceIds: string[]
   onSelectEvidence: (evidenceId: string) => void
 }
 
 export function EvidenceList({
   evidence,
   selectedEvidenceId,
+  highlightedEvidenceIds,
   onSelectEvidence,
 }: EvidenceListProps) {
   return (
@@ -27,6 +29,7 @@ export function EvidenceList({
             key={item.evidence_id}
             evidence={item}
             selected={selectedEvidenceId === item.evidence_id}
+            highlighted={highlightedEvidenceIds.includes(item.evidence_id)}
             onSelect={onSelectEvidence}
           />
         ))}

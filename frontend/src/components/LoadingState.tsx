@@ -2,6 +2,7 @@ const stages = [
   'Searching judgments',
   'Ranking relevant paragraphs',
   'Preparing grounded answer',
+  'Verifying claim citations',
 ]
 
 export function LoadingState({ activeStage }: { activeStage: number }) {
