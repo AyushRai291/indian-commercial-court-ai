@@ -25,6 +25,7 @@ backend/legal_rag/
   retrieval/                Dense, BM25, rank-fused, and reranked retrieval
   evaluation/               Gold validation and paragraph-level retrieval metrics
   vector/                   Qdrant paragraph index adapter
+  api/                      FastAPI schemas, shared retrieval service, and app
 scripts/
   download_judgments.py     Pilot judgment PDF acquisition and audit
   extract_judgments.py      Text-native PDF extraction with page boundaries
@@ -90,6 +91,66 @@ example:
 ```powershell
 $env:DATABASE_URL = "postgresql+psycopg://legal_rag:legal_rag_dev_password@127.0.0.1:5432/legal_rag"
 ```
+
+## Search API
+
+Start the retrieval-only API after PostgreSQL and Qdrant are healthy and the
+package is installed:
+
+```powershell
+uvicorn legal_rag.api.app:app --reload
+```
+
+The generated OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
+`GET /health` is a lightweight process-liveness check. `POST /search` accepts
+`bm25`, `dense`, `hybrid`, and `reranked` modes; `reranked` and `top_k=10` are
+the defaults, and `top_k` must be between 1 and 50. The hybrid stages use the
+measured 50 BM25 candidates, 50 dense candidates, and RRF `k=10`; reranking
+scores the first 30 hybrid candidates. A reranked request above 30 results can
+therefore return at most 30 without changing that frozen candidate depth.
+
+Default reranked search:
+
+```powershell
+$body = @{
+  query = "commercial wisdom of committee of creditors"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/search `
+  -ContentType "application/json" -Body $body
+```
+
+BM25 search:
+
+```powershell
+$body = @{
+  query = "unilateral appointment of arbitrator"
+  retrieval_mode = "bm25"
+  top_k = 10
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/search `
+  -ContentType "application/json" -Body $body
+```
+
+Filtered search (filters use exact normalized AND matching):
+
+```powershell
+$body = @{
+  query = "commercial wisdom of committee of creditors"
+  retrieval_mode = "hybrid"
+  filters = @{
+    court = "Supreme Court of India"
+    year = 2019
+  }
+} | ConvertTo-Json -Depth 3
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/search `
+  -ContentType "application/json" -Body $body
+```
+
+Every hit returns the durable paragraph UID, unchanged paragraph text, canonical
+case metadata, source URL, paragraph and page numbers, available native
+BM25/dense ranks and scores, RRF score and hybrid rank, cross-encoder score, and
+final rank. Fields unavailable for the selected retrieval mode are consistently
+`null`; no answer or citation text is generated.
 
 ## Database migrations
 
