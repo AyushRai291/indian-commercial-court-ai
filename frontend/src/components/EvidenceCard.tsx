@@ -22,7 +22,7 @@ export function EvidenceCard({ evidence, selected, highlighted, onSelect }: Evid
     >
       <span className="evidence-row__id">{evidence.evidence_id}</span>
       <span className="evidence-row__body">
-        <strong>{evidence.case_name}</strong>
+        <strong title={evidence.case_name}>{evidence.case_name}</strong>
         <span>
           {evidence.court ?? 'Court unavailable'} · {year} · Page {page}, Para{' '}
           {evidence.paragraph_number}

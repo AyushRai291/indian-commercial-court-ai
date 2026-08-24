@@ -119,7 +119,7 @@ describe('ResearchWorkspace live API boundary', () => {
     const user = userEvent.setup()
     render(<ResearchWorkspace />)
 
-    expect(screen.getByRole('heading', { name: /start with a focused legal question/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /research a focused legal question/i })).toBeInTheDocument()
     await user.click(
       screen.getByRole('button', { name: /can an ineligible arbitrator nominate/i }),
     )
@@ -185,12 +185,16 @@ describe('ResearchWorkspace live API boundary', () => {
     render(<ResearchWorkspace />)
 
     await submitQuestion()
-    expect(screen.getByRole('heading', { name: /working through the judgment corpus/i })).toBeInTheDocument()
-    expect(screen.getByText('Searching judgments')).toBeInTheDocument()
-    expect(screen.getByText('Ranking evidence')).toBeInTheDocument()
-    expect(screen.getByText('Generating grounded answer')).toBeInTheDocument()
-    expect(screen.getByText('Verifying citations')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /researching judgments/i })).toBeDisabled()
+    const loadingState = screen.getByLabelText('Research in progress')
+    expect(within(loadingState).getByRole('heading', { name: /reviewing the judgment corpus/i })).toBeInTheDocument()
+    expect(within(loadingState).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(loadingState).getByText('Searching judgments')).toBeInTheDocument()
+    expect(within(loadingState).getByText('Ranking evidence')).toBeInTheDocument()
+    expect(within(loadingState).getByText('Generating grounded answer')).toBeInTheDocument()
+    expect(within(loadingState).getByText('Verifying citations')).toBeInTheDocument()
+    expect(loadingState).not.toHaveTextContent(/completed|done/i)
+    expect(loadingState).not.toHaveTextContent(/[\u2713\u2714]/)
+    expect(screen.getByRole('button', { name: /reviewing judgments/i })).toBeDisabled()
 
     await act(async () => {
       resolveFetch(jsonResponse(successfulResearch))
@@ -198,7 +202,7 @@ describe('ResearchWorkspace live API boundary', () => {
     expect(await screen.findByRole('heading', { name: 'Research position' })).toBeInTheDocument()
   })
 
-  it('renders the live answer, verification, evidence source, and nested latency', async () => {
+  it('renders the live answer, verification, evidence source, and collapsed timing', async () => {
     stubResearchResponse()
     render(<ResearchWorkspace />)
     await submitQuestion()
@@ -209,19 +213,32 @@ describe('ResearchWorkspace live API boundary', () => {
     expect(within(answer!).getByLabelText('Citation verification summary')).toHaveTextContent(
       '2 claims/1 supported/0 partial/1 unsupported',
     )
-    expect(within(answer!).getByText(/retrieval 21.5 ms/i)).toBeInTheDocument()
-    expect(within(answer!).getByText(/total 442.1 ms/i)).toBeInTheDocument()
+    expect(within(answer!).getByText(/retrieval 0.0s/i)).toBeInTheDocument()
+    expect(within(answer!).getByText(/completed in 0.4s/i)).toBeInTheDocument()
+    expect(answer!).not.toHaveTextContent(/442\.1 ms/i)
 
     const panel = screen.getByRole('complementary', { name: 'Selected judgment evidence' })
-    expect(within(panel).getByRole('heading', { name: 'E1' })).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'E1 · Evidence' })).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: /open source judgment/i })).toHaveAttribute(
       'href',
       'https://example.test/perkins.pdf',
     )
   })
 
-  it('preserves claim to citation to evidence interaction on live results', async () => {
-    stubResearchResponse()
+  it('preserves the current evidence when another citing claim is selected in the evidence rail', async () => {
+    const secondClaimForE2: ResearchResponse['claims'][number] = {
+      claim_id: 'C3',
+      claim: 'The loss of appointment authority follows from the arbitrator being ineligible.',
+      citation_ids: ['E2'],
+      status: 'SUPPORTED',
+      reason: 'The selected paragraph directly connects ineligibility with the loss of nomination power.',
+      evidence_uids: ['trf-para-54'],
+    }
+    stubResearchResponse({
+      ...successfulResearch,
+      claims: [...successfulResearch.claims, secondClaimForE2],
+      verification_summary: { supported: 2, partial: 0, unsupported: 1 },
+    } satisfies ResearchResponse)
     render(<ResearchWorkspace />)
     const user = await submitQuestion()
     const answer = (await screen.findByRole('heading', { name: 'Research position' })).closest('section')
@@ -229,14 +246,25 @@ describe('ResearchWorkspace live API boundary', () => {
 
     await user.click(within(answer!).getAllByRole('button', { name: /show evidence E2:/i })[0])
     const panel = screen.getByRole('complementary', { name: 'Selected judgment evidence' })
-    expect(within(panel).getByRole('heading', { name: 'E2' })).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'E2 · Evidence' })).toBeInTheDocument()
     expect(within(panel).getByText(/power to nominate also fails/i)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /select C2, UNSUPPORTED:/i }))
-    expect(screen.getByRole('region', { name: 'C2 evidence check' })).toHaveTextContent(
-      /no evidence citation was attached/i,
+    const selectRelatedClaim = within(panel).getByRole('button', {
+      name: /select claim C3, SUPPORTED:/i,
+    })
+    expect(selectRelatedClaim).toHaveAttribute('aria-expanded', 'false')
+    await user.click(selectRelatedClaim)
+
+    expect(within(panel).getByRole('heading', { name: 'E2 · Evidence' })).toBeInTheDocument()
+    expect(within(panel).getByText(/power to nominate also fails/i)).toBeInTheDocument()
+    expect(within(panel).getByRole('link', { name: /open source judgment/i })).toHaveAttribute(
+      'href',
+      'https://example.test/trf.pdf',
     )
-    expect(within(panel).getByRole('heading', { name: 'No cited evidence for C2' })).toBeInTheDocument()
+    expect(
+      within(panel).getByRole('button', { name: /current claim C3, SUPPORTED:/i }),
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(within(panel).getByText(/directly connects ineligibility/i)).toBeVisible()
   })
 
   it('renders a zero-evidence response as an honest no-results state', async () => {
@@ -254,7 +282,7 @@ describe('ResearchWorkspace live API boundary', () => {
     await submitQuestion('A question outside the pilot corpus')
 
     expect(
-      await screen.findByRole('heading', { name: /corpus did not return usable evidence/i }),
+      await screen.findByRole('heading', { name: /no usable judgment passages were found/i }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Research position' })).not.toBeInTheDocument()
   })
@@ -284,7 +312,7 @@ describe('ResearchWorkspace live API boundary', () => {
     render(<ResearchWorkspace />)
     await submitQuestion('Preserve this backend query')
     expect(
-      await screen.findByRole('heading', { name: /judgment service could not be reached/i }),
+      await screen.findByRole('heading', { name: /judgment corpus could not be reached/i }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Legal question')).toHaveValue('Preserve this backend query')
 
@@ -295,7 +323,7 @@ describe('ResearchWorkspace live API boundary', () => {
     expect(
       await screen.findByRole('heading', { name: /no grounded answer was prepared/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/no answer has been invented/i)).toBeInTheDocument()
+    expect(screen.getByText(/no substitute answer has been invented/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Legal question')).toHaveValue('Preserve this Gemini query')
 
     fetchMock.mockResolvedValueOnce(
@@ -303,7 +331,7 @@ describe('ResearchWorkspace live API boundary', () => {
     )
     await submitQuestion('Preserve this verification query')
     expect(
-      await screen.findByRole('heading', { name: /citation verification could not be completed/i }),
+      await screen.findByRole('heading', { name: /citations could not be verified/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/no verification result has been invented/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Legal question')).toHaveValue('Preserve this verification query')
@@ -326,13 +354,13 @@ describe('ResearchWorkspace live API boundary', () => {
 describe('WorkspaceState', () => {
   it('renders neutral backend, generation, and verification messages', () => {
     const { rerender } = render(<WorkspaceState view="backend-error" />)
-    expect(screen.getByRole('heading', { name: /judgment service could not be reached/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /judgment corpus could not be reached/i })).toBeInTheDocument()
 
     rerender(<WorkspaceState view="generation-error" />)
     expect(screen.getByRole('heading', { name: /no grounded answer was prepared/i })).toBeInTheDocument()
-    expect(screen.getByText(/no answer has been invented/i)).toBeInTheDocument()
+    expect(screen.getByText(/no substitute answer has been invented/i)).toBeInTheDocument()
 
     rerender(<WorkspaceState view="verification-error" />)
-    expect(screen.getByRole('heading', { name: /citation verification could not be completed/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /citations could not be verified/i })).toBeInTheDocument()
   })
 })

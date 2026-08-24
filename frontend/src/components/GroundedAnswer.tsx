@@ -2,7 +2,6 @@ import type { EvidenceItem, ResearchResponse, VerifiedClaim } from '../types'
 import { CitationToken } from './CitationToken'
 import { ProductionTrace } from './ProductionTrace'
 import { StatusBadge } from './StatusBadge'
-import { VerificationDetails } from './VerificationDetails'
 import { VerificationSummary } from './VerificationSummary'
 
 interface GroundedAnswerProps {
@@ -14,8 +13,9 @@ interface GroundedAnswerProps {
   onSelectEvidence: (evidenceId: string) => void
 }
 
-const citationTokenPattern = /(\[E[1-9]\d*\])/g
-const exactCitationPattern = /^\[(E[1-9]\d*)\]$/
+const citationClusterPattern = /((?:\[E[1-9]\d*\]\s*)+)/g
+const exactCitationClusterPattern = /^(?:\[E[1-9]\d*\]\s*)+$/
+const evidenceIdPattern = /\[(E[1-9]\d*)\]/g
 
 function GroundedResponse({
   answer,
@@ -28,25 +28,62 @@ function GroundedResponse({
   selectedEvidenceId: string
   onSelectEvidence: (evidenceId: string) => void
 }) {
+  const blocks = answer
+    .split(/\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+
   return (
-    <div className="grounded-response">
+    <div className="grounded-response" aria-label="Generated grounded answer">
       <span className="eyebrow">Generated answer</span>
-      <p>
-        {answer.split(citationTokenPattern).map((part, index) => {
-          const match = part.match(exactCitationPattern)
-          const evidence = match ? evidenceById.get(match[1]) : null
-          return evidence ? (
-            <CitationToken
-              key={`${evidence.evidence_id}-${index}`}
-              evidence={evidence}
-              selected={selectedEvidenceId === evidence.evidence_id}
-              onSelect={onSelectEvidence}
-            />
-          ) : (
-            <span key={`${part}-${index}`}>{part}</span>
-          )
-        })}
-      </p>
+      <div className="grounded-response__prose">
+        {blocks.map((block, blockIndex) => (
+          <p
+            className={blockIndex === 0 ? 'grounded-response__lead' : undefined}
+            key={`${block.slice(0, 32)}-${blockIndex}`}
+          >
+            {block.split(citationClusterPattern).map((part, partIndex) => {
+              if (!exactCitationClusterPattern.test(part)) {
+                return <span key={`${part.slice(0, 24)}-${partIndex}`}>{part}</span>
+              }
+
+              const evidenceIds = Array.from(
+                part.matchAll(evidenceIdPattern),
+                (match) => match[1],
+              )
+              return (
+                <span
+                  className="citation-cluster"
+                  role="group"
+                  aria-label={`Citations ${evidenceIds.join(', ')}`}
+                  key={`citation-cluster-${blockIndex}-${partIndex}`}
+                >
+                  {evidenceIds.map((evidenceId, evidenceIndex) => {
+                    const evidence = evidenceById.get(evidenceId)
+                    return evidence ? (
+                      <CitationToken
+                        key={`${evidenceId}-${evidenceIndex}`}
+                        evidence={evidence}
+                        selected={selectedEvidenceId === evidenceId}
+                        onSelect={onSelectEvidence}
+                      />
+                    ) : (
+                      <span
+                        className="citation-token citation-token--unavailable"
+                        aria-label={`Citation ${evidenceId}; matching evidence unavailable`}
+                        title={`Matching evidence for ${evidenceId} is unavailable`}
+                        key={`${evidenceId}-${evidenceIndex}`}
+                      >
+                        [{evidenceId}]
+                      </span>
+                    )
+                  })}
+                </span>
+              )
+            })}
+          </p>
+        ))}
+      </div>
     </div>
   )
 }
@@ -121,10 +158,6 @@ export function GroundedAnswer({
   const evidenceById = new Map(
     response.evidence.map((item) => [item.evidence_id, item]),
   )
-  const selectedClaim =
-    response.claims.find((claim) => claim.claim_id === selectedClaimId) ??
-    response.claims[0] ??
-    null
   const verificationSummary =
     response.verification_state === 'complete' ? response.verification_summary : null
 
@@ -136,7 +169,7 @@ export function GroundedAnswer({
           <h2 id="answer-title">Research position</h2>
         </div>
         <span className="evidence-count">
-          {response.evidence.length} evidence paragraphs · {response.latency.total_ms.toFixed(0)} ms
+          {response.evidence.length} evidence paragraphs
         </span>
       </div>
 
@@ -166,11 +199,6 @@ export function GroundedAnswer({
               />
             ))}
           </div>
-          <VerificationDetails
-            claim={selectedClaim}
-            evidenceById={evidenceById}
-            onSelectEvidence={onSelectClaimEvidence}
-          />
         </>
       ) : (
         <div className="verification-notice" role="status">
@@ -188,7 +216,7 @@ export function GroundedAnswer({
 
       <ProductionTrace response={response} />
       <div className="answer-footnote">
-        Live research response. Open citations to inspect the exact retrieved judgment paragraph.
+        Select any evidence ID to inspect the exact judgment paragraph and source.
       </div>
     </section>
   )

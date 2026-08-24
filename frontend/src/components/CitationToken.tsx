@@ -20,6 +20,7 @@ export function CitationToken({
       aria-controls="evidence-panel"
       aria-pressed={selected}
       aria-label={`Show evidence ${evidence.evidence_id}: ${evidence.case_name}`}
+      title={`${evidence.evidence_id} · ${evidence.case_name}`}
       onClick={() => onSelect(evidence.evidence_id)}
     >
       [{evidence.evidence_id}]

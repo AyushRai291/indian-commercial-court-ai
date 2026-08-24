@@ -3,28 +3,28 @@ import type { WorkspaceView } from '../types'
 const stateCopy: Record<Exclude<WorkspaceView, 'result' | 'loading'>, { label: string; title: string; body: string }> = {
   empty: {
     label: 'Ready for research',
-    title: 'Start with a focused legal question',
-    body: 'Ask about a statutory provision, appointment issue, insolvency principle, or case proposition in the pilot corpus.',
+    title: 'Research a focused legal question',
+    body: 'Ask about a statutory provision, arbitration issue, insolvency principle, or case proposition in the curated judgment corpus.',
   },
   'no-results': {
-    label: 'No relevant judgments',
-    title: 'The corpus did not return usable evidence',
-    body: 'Try a narrower commercial-law question or remove one of the judgment filters.',
+    label: 'No matching evidence',
+    title: 'No usable judgment passages were found',
+    body: 'Try a narrower commercial-law question, check the case details, or remove one of the filters.',
   },
   'backend-error': {
-    label: 'Search unavailable',
-    title: 'The judgment service could not be reached',
-    body: 'Your query is preserved. Try again after the research service is available.',
+    label: 'Research service unavailable',
+    title: 'The judgment corpus could not be reached',
+    body: 'Your question is preserved. Please try again when the research service is available.',
   },
   'generation-error': {
-    label: 'Gemini unavailable',
+    label: 'Answer unavailable',
     title: 'Evidence was found, but no grounded answer was prepared',
-    body: 'The model provider may be unavailable or out of quota. Your query is preserved, and no answer has been invented or substituted.',
+    body: 'The answer service may be temporarily unavailable. Your question is preserved, and no substitute answer has been invented.',
   },
   'verification-error': {
     label: 'Verification unavailable',
-    title: 'Citation verification could not be completed',
-    body: 'No verification result has been invented. Keep the query and try again when the verifier is available.',
+    title: 'The citations could not be verified',
+    body: 'The grounded answer is preserved, but no verification result has been invented. Try again when the verifier is available.',
   },
 }
 

@@ -36,20 +36,21 @@ export function SearchBar({
         aria-invalid={Boolean(validationError)}
         aria-describedby={validationError ? 'query-error' : 'query-guidance'}
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Ask a focused question about the commercial court corpus…"
+        placeholder="Ask a focused question about an Indian commercial-law issue…"
+        spellCheck="true"
       />
       {validationError ? (
         <p className="query-error" id="query-error" role="alert">{validationError}</p>
       ) : (
         <p className="query-guidance" id="query-guidance">
-          Use a specific legal issue, provision, or case proposition.
+          Frame a specific issue, statutory provision, or case proposition.
         </p>
       )}
       <FilterBar filters={filters} onChange={onFiltersChange} />
       <div className="query-card__footer">
-        <span>Reranked evidence · grounded answer</span>
+        <span>Hybrid retrieval · grounded answer · verified citations</span>
         <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Researching judgments…' : 'Research judgments'}{' '}
+          {isLoading ? 'Reviewing judgments…' : 'Research judgments'}{' '}
           <span aria-hidden="true">→</span>
         </button>
       </div>

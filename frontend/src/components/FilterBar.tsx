@@ -7,11 +7,12 @@ interface FilterBarProps {
 
 export function FilterBar({ filters, onChange }: FilterBarProps) {
   return (
-    <div className="filter-bar" aria-label="Judgment filters">
+    <div className="filter-bar" role="group" aria-label="Judgment filters">
       <label>
         <span>Court</span>
         <select
           value={filters.court}
+          autoComplete="off"
           onChange={(event) => onChange({ ...filters, court: event.target.value })}
         >
           <option value="">All courts</option>
@@ -22,7 +23,8 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <span>Year</span>
         <input
           inputMode="numeric"
-          placeholder="All years"
+          autoComplete="off"
+          placeholder="e.g. 2017"
           value={filters.year}
           onChange={(event) => onChange({ ...filters, year: event.target.value })}
         />
@@ -30,7 +32,8 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       <label className="filter-bar__case">
         <span>Case number</span>
         <input
-          placeholder="Any case number"
+          autoComplete="off"
+          placeholder="e.g. Civil Appeal 5306/2017"
           value={filters.caseNumber}
           onChange={(event) => onChange({ ...filters, caseNumber: event.target.value })}
         />

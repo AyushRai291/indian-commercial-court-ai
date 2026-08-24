@@ -14,32 +14,28 @@ export function Sidebar({ examples, onNewResearch, onSelectExample }: SidebarPro
       <div className="nav-group">
         <span className="nav-label">Workspace</span>
         <a className="nav-item nav-item--active" href="#research" aria-current="page">
-          <span className="nav-glyph" aria-hidden="true">⌕</span> Search
-        </a>
-        <a className="nav-item" href="#recent">
-          <span className="nav-glyph" aria-hidden="true">◷</span> Recent queries
-        </a>
-        <a className="nav-item" href="#corpus">
-          <span className="nav-glyph" aria-hidden="true">▤</span> Corpus
+          <span className="nav-glyph" aria-hidden="true">⌕</span> Legal research
         </a>
       </div>
 
-      <div className="recent-research" id="recent">
-        <span className="nav-label">Demo questions</span>
-        {examples.map((example) => (
+      <div className="recent-research" aria-label="Curated research questions">
+        <span className="nav-label">Try a question</span>
+        {examples.slice(0, 4).map((example, index) => (
           <button
             key={example}
             type="button"
+            title={example}
             onClick={() => onSelectExample(example)}
           >
-            {example}
+            <span className="preset-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+            <span>{example}</span>
           </button>
         ))}
       </div>
 
       <div className="sidebar-note">
-        <span>Day 16 live research</span>
-        <p>Each query runs retrieval, grounded generation, and citation verification.</p>
+        <span>Live research workflow</span>
+        <p>Retrieved judgments, grounded answers, and citations verified claim by claim.</p>
       </div>
     </nav>
   )

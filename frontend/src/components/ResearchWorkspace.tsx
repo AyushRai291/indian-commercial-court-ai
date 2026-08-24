@@ -14,6 +14,7 @@ import { LoadingState } from './LoadingState'
 import { SearchBar } from './SearchBar'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import type { TopBarStatus } from './TopBar'
 import { WorkspaceState } from './WorkspaceState'
 
 const defaultFilters: SearchFilters = {
@@ -39,13 +40,10 @@ export function ResearchWorkspace() {
   const [selectedClaimId, setSelectedClaimId] = useState('')
   const [selectedEvidenceId, setSelectedEvidenceId] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [loadingStage, setLoadingStage] = useState(0)
-  const timers = useRef<Array<ReturnType<typeof setTimeout>>>([])
   const activeRequest = useRef<AbortController | null>(null)
 
   useEffect(
     () => () => {
-      timers.current.forEach(clearTimeout)
       activeRequest.current?.abort()
     },
     [],
@@ -68,14 +66,18 @@ export function ResearchWorkspace() {
   )
 
   const highlightedEvidenceIds = selectedClaim?.citation_ids ?? []
-
-  function clearTimers() {
-    timers.current.forEach(clearTimeout)
-    timers.current = []
-  }
+  const topBarStatus: TopBarStatus =
+    view === 'backend-error'
+      ? 'offline'
+      : view === 'generation-error' || view === 'verification-error'
+        ? 'degraded'
+        : view === 'loading'
+          ? 'working'
+          : activeResult
+            ? 'live'
+            : 'ready'
 
   function cancelResearch() {
-    clearTimers()
     activeRequest.current?.abort()
     activeRequest.current = null
   }
@@ -101,15 +103,6 @@ export function ResearchWorkspace() {
     setView('empty')
   }
 
-  function startLoadingStages() {
-    setLoadingStage(0)
-    timers.current = [
-      setTimeout(() => setLoadingStage(1), 750),
-      setTimeout(() => setLoadingStage(2), 1_600),
-      setTimeout(() => setLoadingStage(3), 2_600),
-    ]
-  }
-
   async function performResearch(normalizedQuery: string, requestFilters: ResearchRequestFilters) {
     cancelResearch()
     const controller = new AbortController()
@@ -119,7 +112,6 @@ export function ResearchWorkspace() {
     setSelectedClaimId('')
     setSelectedEvidenceId('')
     setView('loading')
-    startLoadingStages()
 
     try {
       const response = await runResearch(
@@ -128,7 +120,6 @@ export function ResearchWorkspace() {
       )
       if (controller.signal.aborted || activeRequest.current !== controller) return
 
-      clearTimers()
       if (response.evidence.length === 0) {
         setActiveResult(response)
         setView('no-results')
@@ -147,7 +138,6 @@ export function ResearchWorkspace() {
         return
       }
 
-      clearTimers()
       setView(
         error instanceof ResearchApiError && error.kind === 'generation'
           ? 'generation-error'
@@ -209,7 +199,7 @@ export function ResearchWorkspace() {
 
   return (
     <div className="workspace-shell">
-      <TopBar />
+      <TopBar status={topBarStatus} />
       <Sidebar
         examples={demoQuestions}
         onNewResearch={startNewResearch}
@@ -223,7 +213,7 @@ export function ResearchWorkspace() {
             <h1>Ask the judgment corpus</h1>
             <p>Trace every material claim to its citation, exact paragraph, and verification status.</p>
           </div>
-          <span className="environment-label">Live research API</span>
+          <span className="environment-label">Curated corpus</span>
         </div>
 
         <SearchBar
@@ -236,7 +226,7 @@ export function ResearchWorkspace() {
           onSubmit={submitResearch}
         />
 
-        {view === 'loading' ? <LoadingState activeStage={loadingStage} /> : null}
+        {view === 'loading' ? <LoadingState /> : null}
         {view === 'result' && activeResult ? (
           <>
             <GroundedAnswer
@@ -262,7 +252,7 @@ export function ResearchWorkspace() {
         evidence={selectedEvidence}
         claims={activeResult?.claims ?? []}
         selectedClaim={selectedClaim}
-        onSelectClaim={selectClaim}
+        onSelectClaim={(claimId) => selectClaimEvidence(claimId, selectedEvidenceId)}
       />
     </div>
   )
