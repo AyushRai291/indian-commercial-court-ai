@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -398,13 +399,24 @@ def test_research_endpoint_rejects_invalid_or_extra_input(
     assert service.requests == []
 
 
-def test_research_generation_failure_returns_generic_503() -> None:
+def test_research_generation_failure_returns_generic_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     private_detail = "private Gemini key and provider path"
     service = ResearchService(
         _AnswerStub(error=ProviderUnavailableError(private_detail)),
         _VerificationStub(),
     )
 
+    logged: list[tuple[str, BaseException | None]] = []
+
+    def capture_exception(message: str) -> None:
+        logged.append((message, sys.exc_info()[1]))
+
+    monkeypatch.setattr(
+        "legal_rag.api.app.logger.exception",
+        capture_exception,
+    )
     with _app_client(service) as client:
         response = client.post(
             "/research",
@@ -415,6 +427,8 @@ def test_research_generation_failure_returns_generic_503() -> None:
     assert response.json() == {"detail": GENERATION_UNAVAILABLE_DETAIL}
     assert private_detail not in response.text
     assert "Traceback" not in response.text
+    assert logged[0][0] == "End-to-end answer generation unavailable"
+    assert private_detail in str(logged[0][1])
 
 
 def test_lifespan_composes_research_from_exact_existing_services() -> None:

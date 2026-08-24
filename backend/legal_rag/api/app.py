@@ -269,7 +269,7 @@ def create_app(
                 detail=VERIFICATION_INVALID_DETAIL,
             ) from None
         except VerificationError:
-            logger.warning("Claim-level citation verification unavailable")
+            logger.exception("Claim-level citation verification unavailable")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=VERIFICATION_UNAVAILABLE_DETAIL,
@@ -292,7 +292,7 @@ def create_app(
                 research_request,
             )
         except GenerationError:
-            logger.warning("End-to-end answer generation unavailable")
+            logger.exception("End-to-end answer generation unavailable")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=GENERATION_UNAVAILABLE_DETAIL,

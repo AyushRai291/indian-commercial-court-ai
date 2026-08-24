@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -440,12 +441,21 @@ def test_provider_reason_cannot_invent_an_evidence_id() -> None:
 
 
 def test_provider_failure_returns_clean_503_without_private_detail(
-    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     private_detail = "sk-secret-private-upstream-detail"
     provider = _ProviderStub(error=RuntimeError(private_detail))
     request = _request("One material proposition applies. [E1]", [_evidence()])
 
+    logged: list[tuple[str, BaseException | None]] = []
+
+    def capture_exception(message: str) -> None:
+        logged.append((message, sys.exc_info()[1]))
+
+    monkeypatch.setattr(
+        "legal_rag.api.app.logger.exception",
+        capture_exception,
+    )
     with _client(provider) as client:
         response = client.post("/verify", json=_payload(request))
 
@@ -453,7 +463,10 @@ def test_provider_failure_returns_clean_503_without_private_detail(
     assert response.json() == {"detail": VERIFICATION_UNAVAILABLE_DETAIL}
     assert private_detail not in response.text
     assert "Traceback" not in response.text
-    assert private_detail not in caplog.text
+    assert logged[0][0] == "Claim-level citation verification unavailable"
+    logged_error = logged[0][1]
+    assert logged_error is not None
+    assert private_detail in str(logged_error.__cause__)
 
 
 @pytest.mark.parametrize(
